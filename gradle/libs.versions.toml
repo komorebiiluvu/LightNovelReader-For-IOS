@@ -12,7 +12,6 @@ nav = "2.9.6"
 coreKtx = "1.16.0"
 splashscreen = "1.2.0"
 lifecycle = "2.9.1"
-activityCompose = "1.12.2"
 composeBom = "2026.01.00"
 composeMaterial3 = "1.4.0"
 composeUi = "1.10.1"
@@ -50,7 +49,6 @@ kotlin-compose-compiler-plugin = { module = "org.jetbrains.kotlin:kotlin-compose
 lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose-android", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
 compose-ui = { module = "androidx.compose.ui:ui", version.ref = "composeUi" }

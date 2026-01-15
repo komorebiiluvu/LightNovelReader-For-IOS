@@ -91,7 +91,7 @@ fun ScrollContentTextComponent(
     val density = LocalDensity.current
     val screenHeight = LocalResources.current.displayMetrics.heightPixels
     val textColor = readerTextColor(settingState)
-    val fontFamily = rememberReaderFontFamily(settingState)
+    val fontFamily = rememberReaderFontFamily(settingState.backgroundImageUriUserData)
     val listState = uiState.lazyListState
 
     LaunchedEffect(listState) {

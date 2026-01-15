@@ -72,7 +72,7 @@ fun ContentComponent(
                                 fontSize = settingState.fontSize.sp,
                                 fontLineHeight = settingState.fontLineHeight.sp,
                                 fontWeight = FontWeight(settingState.fontWeigh.toInt()),
-                                fontFamily = rememberReaderFontFamily(settingState),
+                                fontFamily = rememberReaderFontFamily(settingState.backgroundImageUriUserData),
                                 color = readerTextColor(settingState),
                                 onZoomImage = onZoomImage
                             )

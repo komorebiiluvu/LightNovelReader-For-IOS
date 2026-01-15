@@ -25,9 +25,10 @@ object Wenku8AllExplorationPage: ExplorationPageDataSource {
         if (!lock) {
             lock = true
             CoroutineScope(Dispatchers.IO).launch {
-                explorationBooksRows.update {
+                // DEPRECATED!
+                /*explorationBooksRows.update {
                     it + getAllBookBooksRow().copy(expandable = true, expandedPageDataSourceId = "allBook")
-                }
+                }*/
                 explorationBooksRows.update {
                     it + getTopListBookBooksRow("热门轻小说", "allvisit")
                 }

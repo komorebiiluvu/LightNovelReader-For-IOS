@@ -20,7 +20,7 @@ android {
         minSdk = 24
         targetSdk = 36
         // 版本号为x.y.z则versionCode为x*1000000+y*10000+z*1000+debug版本号(开发需要时迭代, 三位数)
-        versionCode = 1_01_06_001
+        versionCode = 1_01_06_002
         versionName = "1.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -89,7 +89,6 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     // Compose
-    implementation(libs.activity.compose)
     implementation(libs.compose.animation.graphics)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)

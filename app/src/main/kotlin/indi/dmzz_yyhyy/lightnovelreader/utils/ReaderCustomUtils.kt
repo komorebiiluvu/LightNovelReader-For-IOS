@@ -1,12 +1,10 @@
 package indi.dmzz_yyhyy.lightnovelreader.utils
 
-import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,20 +12,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isUnspecified
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import coil.request.CachePolicy
 import coil.request.ImageRequest
-import indi.dmzz_yyhyy.lightnovelreader.R
+import coil.size.Scale
+import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UriUserData
 import indi.dmzz_yyhyy.lightnovelreader.ui.LocalAppTheme
 import indi.dmzz_yyhyy.lightnovelreader.ui.book.reader.SettingState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
+
+private const val KRAFT_PAPER_URL = "https://portal.curiousers.org/static/lnr/paper.webp"
+private const val KRAFT_PAPER_CACHE_KEY = "default_kraft_paper"
 
 fun loadReaderFontFamilySafe(uri: Uri): FontFamily? {
     return try {
@@ -41,73 +47,100 @@ fun loadReaderFontFamilySafe(uri: Uri): FontFamily? {
     }
 }
 
-@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-fun rememberReaderFontFamily(settingState: SettingState): FontFamily {
-    val coroutineScope = rememberCoroutineScope()
-    val uri = settingState.fontFamilyUri
-    val fontFamily = remember(uri) {
-        loadReaderFontFamilySafe(uri)
-    }
+fun rememberReaderFontFamily(
+    fontFamilyUriUserData: UriUserData,
+): FontFamily {
+    val snackbarScope = rememberCoroutineScope()
+    val uri by fontFamilyUriUserData.getFlowWithDefault(Uri.EMPTY).collectAsState(Uri.EMPTY)
+    val fontFamily = remember(uri) { loadReaderFontFamilySafe(uri) }
 
+    val snackbarHostState = LocalSnackbarHost.current
     if (fontFamily == null && uri != Uri.EMPTY) {
-        val context = LocalContext.current
-        coroutineScope.launch(Dispatchers.IO) {
-            settingState.fontFamilyUriUserData.set(Uri.EMPTY)
-        }
         LaunchedEffect(uri) {
-            settingState.fontFamilyUriUserData.asynchronousSet(Uri.EMPTY)
-            Toast.makeText(context, "字体加载失败，已恢复为默认字体", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.IO) { fontFamilyUriUserData.set(Uri.EMPTY) }
+            snackbarScope.launch {
+                snackbarHostState.showSnackbar("自定义字体加载失败，已恢复为默认。")
+            }
         }
     }
 
-    return fontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily as FontFamily
+    return fontFamily ?: FontFamily.Default
 }
 
 @Composable
-fun rememberReaderBackgroundPainter(settingState: SettingState): Painter {
+private fun rememberPaperPainter(
+    snackbarScope: CoroutineScope,
+): Painter {
     val context = LocalContext.current
-    val isDark = LocalAppTheme.current.isDark
-    val isCustomEmpty = (settingState.backgroundImageUri.toString().isEmpty() && settingState.backgroundDarkImageUri.toString().isEmpty())
-
-    var loadFailed by remember { mutableStateOf(false) }
-
-
-    if (isCustomEmpty) {
-        return painterResource(id = R.drawable.paper)
+    val theme = LocalAppTheme.current
+    val fallback = remember(theme.isDark, theme.colorScheme.background) {
+        ColorPainter(theme.colorScheme.background)
     }
+    val snackbarHostState = LocalSnackbarHost.current
 
-    val backgroundUri = remember(isDark) {
-        if (isDark) settingState.backgroundDarkImageUri
-        else settingState.backgroundImageUri
-    }
-
-    val imageRequest = remember(backgroundUri) {
+    val request = remember {
         ImageRequest.Builder(context)
-            .data(backgroundUri)
-            .listener(onError = { _, _ -> loadFailed = true })
+            .data(KRAFT_PAPER_URL)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .networkCachePolicy(CachePolicy.ENABLED)
+            .memoryCacheKey(KRAFT_PAPER_CACHE_KEY)
+            .diskCacheKey(KRAFT_PAPER_CACHE_KEY)
+            .scale(Scale.FILL)
             .build()
     }
 
     val painter = rememberAsyncImagePainter(
-        model = imageRequest,
-        error = painterResource(id = R.drawable.paper)
+        model = request,
+        placeholder = fallback,
+        error = fallback
     )
 
-    if (loadFailed) {
-        LaunchedEffect(backgroundUri) {
-            when {
-                isDark && settingState.backgroundDarkImageUri != Uri.EMPTY ->
-                    settingState.backgroundDarkImageUriUserData.asynchronousSet(Uri.EMPTY)
-                else ->
-                    settingState.backgroundImageUriUserData.asynchronousSet(Uri.EMPTY)
+    var errorNotified by remember { mutableStateOf(false) }
+
+    LaunchedEffect(painter.state) {
+        when (painter.state) {
+            is AsyncImagePainter.State.Error -> {
+                if (!errorNotified) {
+                    errorNotified = true
+                    snackbarScope.launch {
+                        snackbarHostState.showSnackbar("自定义背景加载失败，已恢复为默认。")
+                    }
+                }
             }
-            Toast.makeText(context, "背景加载失败，已恢复默认", Toast.LENGTH_SHORT).show()
-            loadFailed = false
+            is AsyncImagePainter.State.Success -> {
+                errorNotified = false
+            }
+            else -> Unit
         }
     }
 
     return painter
+}
+
+@Composable
+fun rememberReaderBackgroundPainter(
+    settingState: SettingState,
+): Painter {
+    val isDark = LocalAppTheme.current.isDark
+    val snackbarScope = rememberCoroutineScope()
+
+    val backgroundUri = remember(
+        isDark,
+        settingState.backgroundImageUri,
+        settingState.backgroundDarkImageUri
+    ) {
+        if (isDark) settingState.backgroundDarkImageUri else settingState.backgroundImageUri
+    }
+
+    if (backgroundUri == Uri.EMPTY || backgroundUri.toString().isBlank()) {
+        return rememberPaperPainter(snackbarScope)
+    }
+
+    return rememberAsyncImagePainter(
+        model = backgroundUri
+    )
 }
 
 @Composable

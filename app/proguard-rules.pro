@@ -66,3 +66,5 @@
 -dontwarn org.dom4j.**
 -keep class org.dom4j.**{*;}
 -keep interface org.dom4j.** { *; }
+-dontwarn com.fasterxml.jackson.**
+-dontwarn okhttp3.logging.**

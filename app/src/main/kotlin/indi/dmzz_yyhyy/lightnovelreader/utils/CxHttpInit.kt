@@ -9,7 +9,7 @@ object CxHttpInit {
 
     fun init() {
         if (isInit) return
-        CxHttpHelper.init(scope = MainScope(), debugLog = true, converter = GsonConverter())
+        CxHttpHelper.init(scope = MainScope(), debugLog = false, converter = GsonConverter())
         isInit = true
     }
 }

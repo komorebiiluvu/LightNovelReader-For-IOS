@@ -9,7 +9,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -210,7 +209,8 @@ fun Content(
     onClickThemeSettings: () -> Unit,
     onZoomImage: (String) -> Unit
 ) {
-    val activity = LocalActivity.current as Activity
+    val context = LocalContext.current
+    val activity = context as Activity
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     val settingsBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
