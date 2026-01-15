@@ -1,7 +1,6 @@
 package indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8
 
 
-import android.util.Log
 import androidx.navigation.NavController
 import cxhttp.CxHttp
 import indi.dmzz_yyhyy.lightnovelreader.R
@@ -10,7 +9,6 @@ import indi.dmzz_yyhyy.lightnovelreader.data.book.BookVolumes
 import indi.dmzz_yyhyy.lightnovelreader.data.book.ChapterContent
 import indi.dmzz_yyhyy.lightnovelreader.data.book.ChapterInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.MutableBookInformation
-import indi.dmzz_yyhyy.lightnovelreader.data.book.MutableChapterContent
 import indi.dmzz_yyhyy.lightnovelreader.data.book.Volume
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.ExplorationExpandedPageDataSource
@@ -29,25 +27,18 @@ import indi.dmzz_yyhyy.lightnovelreader.ui.home.exploration.expanded.navigateToE
 import indi.dmzz_yyhyy.lightnovelreader.utils.CanBeEmpty
 import indi.dmzz_yyhyy.lightnovelreader.utils.UserAgentGenerator
 import indi.dmzz_yyhyy.lightnovelreader.utils.cache.Cache
-import indi.dmzz_yyhyy.lightnovelreader.utils.update
-import io.nightfish.potatoautoproxy.ProxyPool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 import java.net.URLEncoder
-import java.net.UnknownHostException
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -232,15 +223,15 @@ object Wenku8Api: WebBookDataSource {
             expandedPageDataSource = HomeBookExpandPageDataSource(
                 title = "轻小说列表",
                 filtersBuilder = {
+                    val choicesMap = mapOf(
+                        Pair("任意", ""),
+                        Pair("0~9", "1")
+                    )
                     listOf(
                         IsCompletedSwitchFilter { this.refresh() },
-                        FirstLetterSingleChoiceFilter { choice ->
-                            val arg = when (choice) {
-                                "任意" -> ""
-                                "0~9" -> "&initial=1"
-                                else -> "&initial=${choice}"
-                            }
-                            this.arg = arg
+                        FirstLetterSingleChoiceFilter {
+                            this.arg = choicesMap[it.trim()] ?: it.trim()
+                            if (this.arg != "") this.arg += "&initial="
                             this.refresh()
                         },
                         PublishingHouseSingleChoiceFilter { this.refresh() },
@@ -254,15 +245,15 @@ object Wenku8Api: WebBookDataSource {
             expandedPageDataSource = HomeBookExpandPageDataSource(
                 title = "完结全本",
                 filtersBuilder = {
+                    val choicesMap = mapOf(
+                        Pair("任意", ""),
+                        Pair("0~9", "1")
+                    )
                     listOf(
                         IsCompletedSwitchFilter { this.refresh() },
-                        FirstLetterSingleChoiceFilter { choice ->
-                            val arg = when (choice) {
-                                "任意" -> ""
-                                "0~9" -> "&initial=1"
-                                else -> "&initial=${choice}"
-                            }
-                            this.arg = arg
+                        FirstLetterSingleChoiceFilter {
+                            this.arg = choicesMap[it.trim()] ?: it.trim()
+                            if (this.arg != "") this.arg += "&initial="
                             this.refresh()
                         },
                         PublishingHouseSingleChoiceFilter { this.refresh() },
@@ -287,15 +278,6 @@ object Wenku8Api: WebBookDataSource {
                     filtersBuilder = {
                         listOf(
                             IsCompletedSwitchFilter { this.refresh() },
-                            FirstLetterSingleChoiceFilter { choice ->
-                                val arg = when (choice) {
-                                    "任意" -> ""
-                                    "0~9" -> "&initial=1"
-                                    else -> "&initial=${choice}"
-                                }
-                                this.arg = arg
-                                this.refresh()
-                            },
                             PublishingHouseSingleChoiceFilter { this.refresh() },
                             WordCountFilter { this.refresh() }
                         )

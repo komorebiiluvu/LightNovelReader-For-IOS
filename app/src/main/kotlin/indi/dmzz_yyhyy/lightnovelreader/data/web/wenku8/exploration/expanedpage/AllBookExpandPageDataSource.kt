@@ -56,6 +56,7 @@ class HomeBookExpandPageDataSource(
     ): List<BookInformation> =
         Jsoup
             .connect("${baseUrl}?page=$pageIndex$arg$extendedParameters")
+            .let { println("  --> ${baseUrl}?page=$pageIndex$arg$extendedParameters"); it }
             .wenku8Cookie()
             .autoReconnectionGet()
             ?.let { document ->
