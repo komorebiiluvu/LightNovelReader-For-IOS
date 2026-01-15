@@ -8,6 +8,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.book.Volume
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.ExplorationExpandedPageDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.ExplorationPageDataSource
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * LightNovelReader 的网络数据提供源接口，可以通过实现此接口使软件支持新的数据源
@@ -29,7 +30,7 @@ interface WebBookDataSource {
      * 获取当前软件整体是否处于离线状态的数据流
      * 此数据流应当为热数据流, 并且不断对状态进行更新
      */
-    val isOffLineFlow: Flow<Boolean>
+    val isOffLineFlow: StateFlow<Boolean>
 
     /**
      * 所有探索页页面数据源的id
@@ -102,7 +103,7 @@ interface WebBookDataSource {
      * @param keyword 搜索关键词
      * @return 搜索结果的数据流
      */
-    fun search(searchType: String, keyword: String): Flow<List<BookInformation>>
+    fun search(searchType: String, keyword: String): Flow<BookInformation>
 
     /**
      * 停止当前所执行的所有搜索任务

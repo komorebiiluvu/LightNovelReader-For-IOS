@@ -3,6 +3,7 @@ package indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8
 
 import android.util.Log
 import androidx.navigation.NavController
+import cxhttp.CxHttp
 import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.book.BookInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.BookVolumes
@@ -17,6 +18,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.ExplorationPageData
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.filter.IsCompletedSwitchFilter
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.filter.SingleChoiceFilter
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.filter.WordCountFilter
+import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.book.BookRequestDispatcher
 import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.exploration.Wenku8AllExplorationPage
 import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.exploration.Wenku8HomeExplorationPage
 import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.exploration.Wenku8TagsExplorationPage
@@ -24,6 +26,8 @@ import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.exploration.expanedpage.
 import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.exploration.expanedpage.filter.FirstLetterSingleChoiceFilter
 import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.exploration.expanedpage.filter.PublishingHouseSingleChoiceFilter
 import indi.dmzz_yyhyy.lightnovelreader.ui.home.exploration.expanded.navigateToExplorationExpandDestination
+import indi.dmzz_yyhyy.lightnovelreader.utils.CanBeEmpty
+import indi.dmzz_yyhyy.lightnovelreader.utils.UserAgentGenerator
 import indi.dmzz_yyhyy.lightnovelreader.utils.cache.Cache
 import indi.dmzz_yyhyy.lightnovelreader.utils.update
 import io.nightfish.potatoautoproxy.ProxyPool
@@ -61,8 +65,11 @@ object Wenku8Api: WebBookDataSource {
         "大小姐", "性转", "伪娘", "人外",
         "后宫", "百合", "耽美", "NTR", "女性视角"
     )
+    private val bookRequestDispatcher = BookRequestDispatcher()
+    private val isOffLineStateFlow = MutableStateFlow(false)
+
     private var allBookChapterListCacheId: Int = -1
-    private var allBookChapterListCache: List<ChapterInformation> = emptyList()
+    var allBookChapterListCache: List<ChapterInformation> = emptyList()
     private val DATA_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     override val explorationExpandedPageDataSourceMap = mutableMapOf<String, ExplorationExpandedPageDataSource>()
     private var coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -72,19 +79,27 @@ object Wenku8Api: WebBookDataSource {
     private val cache = Cache(
         timeout = 5 * 60 * 1000
     )
+    private val _cache = Cache(
+        timeout = 2 * 60 * 60 * 1000
+    )
     var host  =  hosts[0]
 
     init {
         coroutineScope.launch {
-            offLine = isOffLine()
+            while (currentCoroutineContext().isActive) {
+                offLine = isOffLine()
+                isOffLineStateFlow.emit(offLine)
+                delay(if (offLine) 3000 else 100000)
+            }
         }
     }
 
-    private inline fun <reified T> ifCache(id: Int, block: () -> T): T {
-        val cacheData = cache.getCache<T>(id)
+    private inline fun <reified T: CanBeEmpty> ifCache(id: String, block: () -> T): T {
+        val cacheData = _cache.getCache<T>(id.hashCode())
         if (cacheData == null) {
             val data = block.invoke()
-            cache.cache(id, data)
+            if (data.isEmpty()) return data
+            _cache.cache(id.hashCode(), data)
             return data
         }
         return cacheData
@@ -92,210 +107,34 @@ object Wenku8Api: WebBookDataSource {
 
     override var offLine: Boolean = true
 
-    override val isOffLineFlow = flow {
-        emit(offLine)
-        while (currentCoroutineContext().isActive) {
-            offLine = isOffLine()
-            if (offLine)
-                offLine = isOffLine()
-            emit(offLine)
-            delay(if (offLine) 3000 else 100000)
-        }
-    }
-
-    private suspend fun tryOrFalse(block: () -> Unit): Boolean = withContext(Dispatchers.IO) {
-        try {
-            block.invoke()
-            return@withContext false
-        } catch (e: UnknownHostException) {
-            Log.e("Wenku8Api", "DNS probe failed. ${e.message}")
-            true
-        } catch (e: Exception) {
-            Log.e("Wenku8Api", "${e.message}")
-            Log.d("Wenku8Api", "An error occurred", e)
-            return@withContext true
-        }
-    }
+    override val isOffLineFlow = isOffLineStateFlow
 
     override suspend fun isOffLine(): Boolean = withContext(Dispatchers.IO) {
-        val isApiOffLine =
-            async {
-                tryOrFalse {
-                    Jsoup
-                        .connect(update("eNpb85aBtYRBMaOkpMBKXz-xoECvPDUvu9RCLzk_Vz8xL6UoPzNFryCjAAAfiA5Q").toString())
-                        .userAgent("wenku8")
-                        .let {
-                            if (ProxyPool.enable && !isLocalIpUnableUse)
-                                ProxyPool.apply {
-                                    it.proxyGet()
-                                }
-                            else it.get()
-                        }
+        suspend fun webSite(index: Int): Boolean {
+            return !CxHttp
+                .get(hosts[index]) {
+                    header("user-agent", UserAgentGenerator.generate())
+                    header("cookie",wenku8Cookies().map { "${it.key}=${it.value}" }.joinToString(separator = ";"))
                 }
-            }
-        val isWebOffline1 =
-            async {
-                tryOrFalse {
-                    Jsoup
-                        .connect(hosts[0])
-                        .wenku8Cookie()
-                        .let {
-                            if (ProxyPool.enable && !isLocalIpUnableUse)
-                                ProxyPool.apply {
-                                    it.proxyGet()
-                                }
-                            else it.get()
-                        }
-                }.also {
-                    if (!it)
-                        host = hosts[0]
-                }
-            }
-        val isWebOffline2 =
-            async {
-                tryOrFalse {
-                    Jsoup
-                        .connect(hosts[1])
-                        .wenku8Cookie()
-                        .let {
-                            if (ProxyPool.enable && !isLocalIpUnableUse)
-                                ProxyPool.apply {
-                                    it.proxyGet()
-                                }
-                            else it.get()
-                        }
-                }.also {
-                    if (!it)
-                        host = hosts[1]
-                }
-            }
-
-        val isWebOffline3 =
-            async {
-                tryOrFalse {
-                    Jsoup
-                        .connect(hosts[2])
-                        .wenku8Cookie()
-                        .let {
-                            if (ProxyPool.enable && !isLocalIpUnableUse)
-                                ProxyPool.apply {
-                                    it.proxyGet()
-                                }
-                            else it.get()
-                        }
-                }.also {
-                    if (!it)
-                        host = hosts[2]
-                }
-            }
-
-        return@withContext isApiOffLine.await() || (isWebOffline1.await() && isWebOffline2.await() && isWebOffline3.await())
+                .await()
+                .isSuccessful
+                .also { host = hosts[index] }
+        }
+        return@withContext webSite(0) && webSite(1) && webSite(2)
     }
 
     override val id: Int = "wenku8".hashCode()
 
-    override suspend fun getBookInformation(id: Int): BookInformation = ifCache(id) {
-        return@ifCache wenku8Api("action=book&do=meta&aid=$id&t=0")?.let {
-            val titleGroup = it
-                .selectFirst("[name=Title]")?.text()
-                ?.let { it1 -> titleRegex.find(it1)?.groups }
-            try {
-                MutableBookInformation(
-                    id = id,
-                    title = titleGroup?.get(1)?.value ?: it.selectFirst("[name=Title]")?.text()
-                    ?: "",
-                    subtitle = titleGroup?.get(2)?.value ?: "",
-                    coverUrl = "https://img.wenku8.com/image/${id / 1000}/$id/${id}s.jpg",
-                    author = it.selectFirst("[name=Author]")?.attr("value") ?: "",
-                    description = wenku8Api("action=book&do=intro&aid=$id&t=0")?.text() ?: "",
-                    tags = it.selectFirst("[name=Tags]")?.attr("value")?.split(" ") ?: emptyList(),
-                    publishingHouse = it.selectFirst("[name=PressId]")?.attr("value") ?: "",
-                    wordCount = it.selectFirst("[name=BookLength]")?.attr("value")?.toInt() ?: -1,
-                    lastUpdated = LocalDate.parse(
-                        it.selectFirst("[name=LastUpdate]")?.attr("value"), DATA_TIME_FORMATTER
-                    ).atStartOfDay(),
-                    isComplete = it.selectFirst("[name=BookStatus]")?.attr("value") == "已完成"
-                )
-            } catch (e: NullPointerException) {
-                e.printStackTrace()
-                BookInformation.empty()
-            }
-        } ?: BookInformation.empty()
+    override suspend fun getBookInformation(id: Int): BookInformation = ifCache(id.toString()) {
+        bookRequestDispatcher.getBookInformation(id)
     }
 
-    override suspend fun getBookVolumes(id: Int): BookVolumes = ifCache(id) {
-        return@ifCache BookVolumes(
-            id,
-            wenku8Api("action=book&do=list&aid=$id&t=0")
-            ?.select("volume")
-            ?.map { element ->
-                Volume(
-                    volumeId = element.attr("vid").toInt(),
-                    volumeTitle = element.ownText(),
-                    chapters = element.select("volume > chapter")
-                        .map {
-                            ChapterInformation(
-                                id = it.attr("cid").toInt(),
-                                title = it.text(),
-                            )
-                        }
-                )
-            } ?: emptyList()
-        )
+    override suspend fun getBookVolumes(id: Int): BookVolumes = ifCache(id.toString()) {
+        bookRequestDispatcher.getBookVolumes(id)
     }
 
-    override suspend fun getChapterContent(chapterId: Int, bookId: Int): ChapterContent = ifCache(chapterId.hashCode() + bookId.hashCode())  {
-        if (allBookChapterListCacheId != bookId) {
-            allBookChapterListCacheId = bookId
-            allBookChapterListCache = getBookVolumes(bookId).let { bookVolumes ->
-                var list = emptyList<ChapterInformation>()
-                bookVolumes.volumes.forEach {
-                    list = list + it.chapters
-                }
-                return@let list
-            }
-        }
-        return@ifCache wenku8Api("action=book&do=text&aid=$bookId&cid=$chapterId&t=0")
-            .let { document ->
-                document
-                    ?.wholeText()
-                    ?.let { s ->
-                        var title = ""
-                        var content = ""
-                        s.split("\n").forEachIndexed { index, line ->
-                            if (content != "") return@forEachIndexed
-                            if (title == "" && line.any { !it.isWhitespace() }) {
-                                title = line.trim()
-                                return@forEachIndexed
-                            }
-                            if (title != "" && line.any { !it.isWhitespace() }) {
-                                content = s.split("\n").drop(index).joinToString("\n")
-                                return@forEachIndexed
-                            }
-                        }
-                        val imagesResult = Regex("(http.*?)(<!--image-->)")
-                            .findAll(document.toString())
-                            .toList()
-                        imagesResult.forEach {
-                            content = content.replace(it.groups[1]?.value ?: it.value, "[image]${it.groups[1]?.value ?: ""}[image]")
-                        }
-                        MutableChapterContent(
-                            id = chapterId,
-                            title = title,
-                            content = content,
-                            lastChapter = allBookChapterListCache
-                                .indexOfFirst { it.id == chapterId }
-                                .let {
-                                    if (it == -1) it else allBookChapterListCache.getOrNull(it - 1)?.id ?: -1
-                                },
-                            nextChapter = allBookChapterListCache
-                                .indexOfFirst { it.id == chapterId }
-                                .let {
-                                    if (it == -1) it else allBookChapterListCache.getOrNull(it + 1)?.id ?: -1
-                                }
-                        )
-                    } ?: ChapterContent.empty()
-            }
+    override suspend fun getChapterContent(chapterId: Int, bookId: Int): ChapterContent = ifCache("$chapterId $bookId")  {
+        bookRequestDispatcher.getChapterContent(chapterId, bookId)
     }
 
     override val explorationPageDataSourceMap: Map<String, ExplorationPageDataSource> =
@@ -307,25 +146,8 @@ object Wenku8Api: WebBookDataSource {
 
     override val explorationPageIdList: List<String> = listOf("首页", "全部", "分类")
 
-    override fun search(searchType: String, keyword: String): Flow<List<BookInformation>> {
-        val searchResult = MutableStateFlow(emptyList<BookInformation>())
-        val encodedKeyword = URLEncoder.encode(keyword, "gb2312")
-        coroutineScope.launch {
-            delay(1)
-            wenku8Api("action=search&searchtype=$searchType&searchkey=${URLEncoder.encode(encodedKeyword, "utf-8")}")
-                ?.select("item")
-                ?.forEach { element ->
-                    searchResult.update {
-                        it + listOf(getBookInformation(element.attr("aid").toInt()))
-                    }
-                }
-                ?.let {
-                    searchResult.update {
-                        it + listOf(BookInformation.empty())
-                    }
-                }
-        }
-        return searchResult
+    override fun search(searchType: String, keyword: String): Flow<BookInformation> {
+        return bookRequestDispatcher.search(searchType, keyword)
     }
 
     override fun stopAllSearch() {

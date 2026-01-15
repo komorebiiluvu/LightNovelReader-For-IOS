@@ -1,24 +1,15 @@
 package indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8
 
-import android.util.Log
+import cxhttp.CxHttp
+import cxhttp.response.Response
 import indi.dmzz_yyhyy.lightnovelreader.utils.UserAgentGenerator
-import indi.dmzz_yyhyy.lightnovelreader.utils.autoReconnectionPost
-import indi.dmzz_yyhyy.lightnovelreader.utils.update
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withContext
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import java.time.Instant
-import kotlin.io.encoding.Base64
-import kotlin.random.Random
-
-private val requestLimiter = Semaphore(3)
-private val pendingJobs = Channel<Unit>(capacity = 25, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+import java.nio.charset.Charset
 
 fun Connection.wenku8Cookie(): Connection =
     this
@@ -36,38 +27,34 @@ fun wenku8Cookies(): Map<String, String> = mapOf(
     "Hm_lpvt_d72896ddbf8d27c750e3b365ea2fc902" to "1739294503"
 )
 
-suspend fun wenku8Api(request: String): Document? {
-    if (!pendingJobs.trySend(Unit).isSuccess) {
-        Log.w("Wenku8API", "request dropped: $request")
-    }
-
-    return try {
-        requestLimiter.withPermit {
-            delay(Random.Default.nextLong(500, 800))
-            Log.i("Wenku8API", "request to wenku8 with $request")
-
-            withTimeoutOrNull(15_000L) {
-                val doc = Jsoup
-                    .connect(update("eNpb85aBtYRBMaOkpMBKXz-xoECvPDUvu9RCLzk_Vz8xL6UoPzNFryCjAAAfiA5Q").toString())
-                    .userAgent("wenku8")
-                    .data(
-                        "request", Base64.encode(request.toByteArray()),
-                        "timetoken", Instant.now().toEpochMilli().toString(),
-                        "appver", "1.21"
-                    )
-                    .autoReconnectionPost()
-
-                doc?.outputSettings(
-                    Document.OutputSettings()
-                        .prettyPrint(false)
-                        .syntax(Document.OutputSettings.Syntax.xml)
-                )
-                doc
-            }.also {
-                if (it == null) Log.w("Wenku8API", "request timeout: $request")
+suspend fun autoReconnectionGetWithWenku8Cookie(url: String): Document? = withContext(Dispatchers.IO) {
+    suspend fun get(): Response {
+        return CxHttp
+            .get(url){
+                header("user-agent", UserAgentGenerator.generate())
+                header("cookie",
+                    wenku8Cookies().map { "${it.key}=${it.value}" }.joinToString(separator = ";"))
             }
-        }
-    } finally {
-        pendingJobs.tryReceive().getOrNull()
+            .scope(this)
+            .await()
     }
+    var retryTime = 5
+    var retryDelay = 1500L
+    var response = get()
+    while (!response.isSuccessful && retryTime >= 1) {
+        response = get()
+        retryTime--
+        delay(retryDelay)
+        retryDelay = retryDelay * 2
+    }
+    val doc = response.body
+        ?.bytes()
+        ?.toString(charset = Charset.forName("GBK"))
+        ?.let(Jsoup::parse)
+        ?.outputSettings(
+            Document.OutputSettings()
+                .prettyPrint(false)
+                .syntax(Document.OutputSettings.Syntax.xml)
+        )
+    return@withContext doc
 }

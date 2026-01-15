@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.text.clear
 
 @HiltViewModel
 class ExplorationSearchViewModel @Inject constructor(
@@ -77,17 +78,16 @@ class ExplorationSearchViewModel @Inject constructor(
         explorationRepository.stopAllSearch()
         _uiState.isLoading = true
         _uiState.isLoadingComplete = false
-        _uiState.searchResult = mutableListOf()
+        _uiState.searchResult.clear()
         searchJob?.cancel()
         searchJob = viewModelScope.launch(Dispatchers.IO) {
-            explorationRepository.search(_uiState.searchType, keyword).collect {
-                _uiState.isLoading = false
-                if (it.isNotEmpty() && it.last().isEmpty()) {
+            val flow = explorationRepository.search(_uiState.searchType, keyword)
+            _uiState.isLoading = false
+            flow.collect {
+                _uiState.searchResult.add(it)
+                if (it.isEmpty()) {
                     _uiState.isLoadingComplete = true
-                    _uiState.searchResult = it.dropLast(1).toMutableList()
-                    return@collect
                 }
-                _uiState.searchResult = it.toMutableList()
             }
         }
         viewModelScope.launch(Dispatchers.IO) {

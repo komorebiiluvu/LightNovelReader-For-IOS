@@ -1,4 +1,5 @@
 package indi.dmzz_yyhyy.lightnovelreader.data.web.zaicomic
+/*
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -17,7 +18,6 @@ import indi.dmzz_yyhyy.lightnovelreader.data.web.zaicomic.json.DetailData
 import indi.dmzz_yyhyy.lightnovelreader.data.web.zaicomic.json.ListDataContent
 import indi.dmzz_yyhyy.lightnovelreader.data.web.zaicomic.json.SearchItem
 import indi.dmzz_yyhyy.lightnovelreader.data.web.zaicomic.json.ZaiComicData
-import indi.dmzz_yyhyy.lightnovelreader.utils.autoReconnectionGetJsonText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -219,3 +219,4 @@ object ZaiComic : WebBookDataSource {
         searchJob?.cancel()
     }
 }
+*/

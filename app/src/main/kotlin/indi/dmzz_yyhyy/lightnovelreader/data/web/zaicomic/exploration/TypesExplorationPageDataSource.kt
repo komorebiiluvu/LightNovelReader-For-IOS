@@ -1,4 +1,5 @@
 package indi.dmzz_yyhyy.lightnovelreader.data.web.zaicomic.exploration
+/*
 
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
@@ -80,3 +81,4 @@ object TypesExplorationPageDataSource : ExplorationPageDataSource {
         val cover: String
     )
 }
+*/

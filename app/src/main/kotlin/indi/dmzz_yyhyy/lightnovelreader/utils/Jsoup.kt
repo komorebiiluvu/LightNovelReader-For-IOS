@@ -73,13 +73,5 @@ private suspend fun retry(reconnectTimes: Int, reconnectDelay: Long, block: susp
     return block.invoke()
 }
 
-suspend fun Connection.autoReconnectionGetJsonText(): String? =
-    this.ignoreContentType(true)
-        .autoReconnectionGet()
-        ?.outputSettings(
-            Document.OutputSettings()
-                .prettyPrint(false)
-                .syntax(Document.OutputSettings.Syntax.xml)
-        )
-        ?.body()
-        ?.text()
+fun Document.selectFirstXpath(path: String) =
+    this.selectXpath(path).firstOrNull()

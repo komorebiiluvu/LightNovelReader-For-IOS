@@ -6,10 +6,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import indi.dmzz_yyhyy.lightnovelreader.utils.CanBeEmpty
 import java.time.LocalDateTime
+import kotlin.text.isEmpty
 
 @Stable
-interface BookInformation {
+interface BookInformation: CanBeEmpty {
     val id: Int
     val title: String
     val subtitle: String
@@ -39,7 +41,7 @@ interface BookInformation {
         )
     }
 
-    fun isEmpty() = id == -1 || title == ""
+    override fun isEmpty() = id == -1 || title == ""
 
     @Suppress("unused")
     fun toMutable(): MutableBookInformation {
