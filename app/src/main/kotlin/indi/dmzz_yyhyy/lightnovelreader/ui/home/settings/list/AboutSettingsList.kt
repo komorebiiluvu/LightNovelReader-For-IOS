@@ -52,6 +52,13 @@ fun AboutSettingsList(
         description = stringResource(R.string.settings_github_repo_desc),
         openUrl = "https://github.com/dmzz-yyhyy/LightNovelReader"
     )
+    SettingsClickableEntry(
+        modifier = Modifier.background(colorScheme.surfaceContainer),
+        painter = painterResource(R.drawable.volunteer_activism_24px),
+        title = stringResource(R.string.settings_support_author),
+        description = stringResource(R.string.settings_support_author_desc),
+        openUrl = "https://afdian.com/a/lightnovelreader"
+    )
     /* SettingsSwitchEntry(
         modifier = Modifier.background(colorScheme.surfaceContainer),
         title = stringResource(R.string.settings_statistics),

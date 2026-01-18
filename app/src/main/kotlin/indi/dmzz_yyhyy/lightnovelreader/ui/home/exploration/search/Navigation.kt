@@ -29,7 +29,7 @@ fun NavGraphBuilder.explorationSearchDestination() {
             onClickBack = { navController.popBackStackIfResumed() },
             init = explorationSearchViewModel::init,
             onChangeSearchType = { explorationSearchViewModel.changeSearchType(it) },
-            onSearch = { explorationSearchViewModel.search(it) },
+            onSearch = { explorationSearchViewModel.search(it, navController::navigateToBookDetailDestination) },
             onClickDeleteHistory = { explorationSearchViewModel.deleteHistory(it) },
             onClickClearAllHistory = explorationSearchViewModel::clearAllHistory,
             onClickBook = {

@@ -184,6 +184,8 @@
     <string name="settings_about_oss">LightNovelReader is the gift for all the light novel lovers in the world.</string>
     <string name="settings_github_repo">GitHub Repository</string>
     <string name="settings_github_repo_desc">Star our repo to help us reach more users</string>
+    <string name="settings_support_author">Buy the Author a Tea</string>
+    <string name="settings_support_author_desc">Consider supporting NightFish with a small tip</string>
     <string name="settings_communication">Communication</string>
     <string name="settings_communication_desc">Join our QQ group for discussions and feedback</string>
     <string name="settings_statistics">Statistics</string>

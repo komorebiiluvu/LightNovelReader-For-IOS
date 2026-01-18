@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import indi.dmzz_yyhyy.lightnovelreader.R
-import indi.dmzz_yyhyy.lightnovelreader.theme.AppTypography
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.AnimatedText
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.BookCardItem
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.EmptyPage
@@ -76,8 +75,6 @@ fun ExplorationSearchScreen(
     onClickBook: (Int) -> Unit
 ) {
     var searchKeyword by rememberSaveable { mutableStateOf("") }
-    var searchBarExpanded by rememberSaveable { mutableStateOf(true) }
-    var dropdownMenuExpanded by rememberSaveable { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
         init.invoke()
     }
@@ -93,20 +90,20 @@ fun ExplorationSearchScreen(
                         .height(56.dp)) {
                     DropdownMenu(
                         offset = DpOffset((-12).dp, 0.dp),
-                        expanded = dropdownMenuExpanded,
-                        onDismissRequest = { dropdownMenuExpanded = false }) {
+                        expanded = explorationSearchUiState.dropdownMenuExpanded,
+                        onDismissRequest = { explorationSearchUiState.setDropdownMenuExpandedState(false) }) {
                         explorationSearchUiState.searchTypeIdList.forEach {
                             DropdownMenuItem(
                                 text = {
                                     explorationSearchUiState.searchTypeNameMap[it]?.let { it1 ->
                                         Text(
                                             text = it1,
-                                            style = AppTypography.dropDownItem
+                                            style = MaterialTheme.typography.bodyLarge
                                         )
                                     }
                                 },
                                 onClick = {
-                                    dropdownMenuExpanded = false
+                                    explorationSearchUiState.setDropdownMenuExpandedState(false)
                                     onChangeSearchType(it)
                                 }
                             )
@@ -117,21 +114,21 @@ fun ExplorationSearchScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .fillMaxWidth()
-                        .padding(horizontal = if (!searchBarExpanded) 12.dp else 0.dp)
+                        .padding(horizontal = if (!explorationSearchUiState.searchBarExpanded) 12.dp else 0.dp)
                         .semantics { traversalIndex = 0f },
                     inputField = {
                         SearchBarDefaults.InputField(
                             query = searchKeyword,
                             onQueryChange = { searchKeyword = it },
                             onSearch = {
-                                searchBarExpanded = false
+                                explorationSearchUiState.setSearchBarExpandedState(false)
                                 onSearch(it)
                             },
-                            expanded = searchBarExpanded,
-                            onExpandedChange = { searchBarExpanded = it },
+                            expanded = explorationSearchUiState.searchBarExpanded,
+                            onExpandedChange = explorationSearchUiState::setSearchBarExpandedState,
                             placeholder = { AnimatedText(
                                 text = explorationSearchUiState.searchTip,
-                                style = AppTypography.bodyLarge,
+                                style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             ) },
                             leadingIcon = {
@@ -143,20 +140,20 @@ fun ExplorationSearchScreen(
                                 Row {
                                     if (searchKeyword.isNotBlank())
                                         IconButton(onClick = {
-                                            searchBarExpanded = true
+                                            explorationSearchUiState.setSearchBarExpandedState(true)
                                             searchKeyword = ""
                                         }) {
                                             Icon(painter = painterResource(R.drawable.close_24px), contentDescription = "clear")
                                         }
-                                    if (searchBarExpanded)
-                                        IconButton(onClick = { dropdownMenuExpanded = true }) {
+                                    if (explorationSearchUiState.searchBarExpanded)
+                                        IconButton(onClick = { explorationSearchUiState.setDropdownMenuExpandedState(true) }) {
                                             Icon(painter = painterResource(R.drawable.filter_alt_24px), contentDescription = "filter")
                                         }
                                 }
                             },
                         )
                     },
-                    expanded = searchBarExpanded,
+                    expanded = explorationSearchUiState.searchBarExpanded,
                     onExpandedChange = { if (!it) onClickBack.invoke() }
                 ) {
                     AnimatedVisibility(
@@ -166,8 +163,8 @@ fun ExplorationSearchScreen(
                     ) {
                         EmptyPage(
                             icon = painterResource(R.drawable.schedule_90dp),
-                            titleId = R.string.nothing_here,
-                            descriptionId = R.string.nothing_here_desc_search
+                            title = stringResource(R.string.nothing_here),
+                            description = stringResource(R.string.nothing_here_desc_search)
                         )
                     }
                     AnimatedVisibility(
@@ -188,7 +185,7 @@ fun ExplorationSearchScreen(
                             ) {
                                 Text(
                                     text = stringResource(id = R.string.search_history),
-                                    style = AppTypography.titleSmall,
+                                    style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.W600
                                 )
 
@@ -204,7 +201,7 @@ fun ExplorationSearchScreen(
                                 ) {
                                     Text(
                                         text = stringResource(id = R.string.clear_all),
-                                        style = AppTypography.titleSmall,
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.W600,
                                     )
                                 }
@@ -225,7 +222,7 @@ fun ExplorationSearchScreen(
                                             .padding(horizontal = 16.dp)
                                             .clickable {
                                                 searchKeyword = it
-                                                searchBarExpanded = false
+                                                explorationSearchUiState.setSearchBarExpandedState(false)
                                                 onSearch.invoke(history)
                                             },
                                         verticalAlignment = Alignment.CenterVertically
@@ -233,7 +230,7 @@ fun ExplorationSearchScreen(
                                         Text(
                                             modifier = Modifier.padding(start = 8.dp),
                                             text = it,
-                                            style = AppTypography.labelLarge,
+                                            style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Box(Modifier.weight(2f))
@@ -262,18 +259,29 @@ fun ExplorationSearchScreen(
             refresh = refresh
         ) {
             AnimatedVisibility(
-                visible = explorationSearchUiState.isLoadingComplete && explorationSearchUiState.searchResult.isEmpty(),
+                visible = explorationSearchUiState.errorMessage.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                EmptyPage(
+                    icon = painterResource(R.drawable.error_24px),
+                    title = "搜索出现了错误",
+                    description = explorationSearchUiState.errorMessage
+                )
+            }
+            AnimatedVisibility(
+                visible = explorationSearchUiState.isLoadingComplete && explorationSearchUiState.searchResult.isEmpty() && explorationSearchUiState.errorMessage.isEmpty(),
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
                 EmptyPage(
                     icon = painterResource(R.drawable.not_found_90dp),
-                    titleId = R.string.search_no_results,
-                    descriptionId = R.string.search_no_results_desc
+                    title = stringResource(R.string.search_no_results),
+                    description = stringResource(R.string.search_no_results_desc)
                 )
             }
             AnimatedVisibility(
-                visible = !explorationSearchUiState.isLoading,
+                visible = !explorationSearchUiState.isLoading && explorationSearchUiState.errorMessage.isEmpty(),
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
@@ -292,7 +300,7 @@ fun ExplorationSearchScreen(
                                     explorationSearchUiState.searchResult.size,
                                     if (explorationSearchUiState.isLoadingComplete) "" else "..."
                                 ),
-                                style = AppTypography.bodyMedium,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.W600,
                                 letterSpacing = 0.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -309,7 +317,7 @@ fun ExplorationSearchScreen(
                             onClick = { onClickBook(it.id) },
                             onLongPress = withHaptic {},
                             collected = explorationSearchUiState.allBookshelfBookIds.contains(it.id),
-                            swipeToRightActions = listOf(addToBookshelf)
+                            swipeToRightActions = listOf(addToBookshelf),
                         )
                     }
                     item {

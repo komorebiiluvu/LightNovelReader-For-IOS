@@ -7,11 +7,11 @@ import indi.dmzz_yyhyy.lightnovelreader.data.bookshelf.BookshelfRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.exploration.ExplorationRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UserDataPath
 import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UserDataRepository
+import indi.dmzz_yyhyy.lightnovelreader.data.web.SearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.text.clear
 
 @HiltViewModel
 class ExplorationSearchViewModel @Inject constructor(
@@ -27,7 +27,6 @@ class ExplorationSearchViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        explorationRepository.stopAllSearch()
         searchJob?.cancel()
     }
 
@@ -74,19 +73,30 @@ class ExplorationSearchViewModel @Inject constructor(
         }
     }
 
-    fun search(keyword: String) {
-        explorationRepository.stopAllSearch()
+    fun search(
+        keyword: String,
+        navigateToSingleBook: (bookId: Int) -> Unit
+    ) {
         _uiState.isLoading = true
         _uiState.isLoadingComplete = false
+        _uiState.errorMessage = ""
         _uiState.searchResult.clear()
         searchJob?.cancel()
         searchJob = viewModelScope.launch(Dispatchers.IO) {
             val flow = explorationRepository.search(_uiState.searchType, keyword)
             _uiState.isLoading = false
             flow.collect {
-                _uiState.searchResult.add(it)
-                if (it.isEmpty()) {
-                    _uiState.isLoadingComplete = true
+                when(it) {
+                    is SearchResult.SingleBook -> launch(Dispatchers.Main) {
+                        _uiState.searchBarExpanded = true
+                        navigateToSingleBook(it.bookId)
+                    }
+                    is SearchResult.MultipleBook -> _uiState.searchResult.add(it.bookInformation)
+                    is SearchResult.Error -> {
+                        _uiState.isLoadingComplete = true
+                        _uiState.errorMessage = it.error.message.toString()
+                    }
+                    is SearchResult.End -> _uiState.isLoadingComplete = true
                 }
             }
         }

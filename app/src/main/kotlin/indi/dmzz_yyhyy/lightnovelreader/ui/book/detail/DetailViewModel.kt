@@ -2,9 +2,6 @@ package indi.dmzz_yyhyy.lightnovelreader.ui.book.detail
 
 import android.net.Uri
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -36,13 +33,9 @@ class DetailViewModel @Inject constructor(
     var navController: NavController? = null
     val uiState: DetailUiState = _uiState
 
-    var isInitialized by mutableStateOf(false)
-        private set
-
     fun init(bookId: Int) {
         Log.d("DetailViewModel", "Init bookId = $bookId")
-        if (isInitialized) return
-        isInitialized = true
+
         viewModelScope.launch(Dispatchers.IO) {
             bookRepository.getBookInformationFlow(bookId, viewModelScope).collect {
                 if (it.id == -1) return@collect

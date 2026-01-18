@@ -183,6 +183,8 @@
     <string name="settings_about_oss">LightNovelReader 是献给世界上所有阅读爱好者的礼物。</string>
     <string name="settings_github_repo">GitHub 仓库</string>
     <string name="settings_github_repo_desc">给本项目点颗 star, 帮助我们被更多人发现</string>
+    <string name="settings_support_author">请作者喝茶</string>
+    <string name="settings_support_author_desc">夜鱼很可爱, 请给夜鱼💰</string>
     <string name="settings_communication">加入讨论</string>
     <string name="settings_communication_desc">加入我们的 QQ 群讨论或反馈</string>
     <string name="settings_statistics">匿名统计</string>

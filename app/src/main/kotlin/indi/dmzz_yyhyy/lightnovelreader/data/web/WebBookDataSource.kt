@@ -95,22 +95,14 @@ interface WebBookDataSource {
     /**
      * 执行搜索任务
      *
-     * 应当返回搜索结果的热数据流
-     * 并且以空书本元数据[BookInformation.empty]作为列表结尾时表示搜索结束
-     * 此函数本身应当保证主线程安全
+     * 应当返回搜索结果的数据流
+     * 并且以空书本元数据[BookInformation.Companion.empty]作为流结尾时表示搜索结束
      *
      * @param searchType 搜索类别
      * @param keyword 搜索关键词
      * @return 搜索结果的数据流
      */
-    fun search(searchType: String, keyword: String): Flow<BookInformation>
-
-    /**
-     * 停止当前所执行的所有搜索任务
-     * 此函数应当保证主线程安全
-     *
-     */
-    fun stopAllSearch()
+    fun search(searchType: String, keyword: String): Flow<SearchResult>
 
     /**
      * 用于处理书本tag的点击跳转事件

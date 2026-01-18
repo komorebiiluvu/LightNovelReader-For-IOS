@@ -10,6 +10,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.book.ChapterContent
 import indi.dmzz_yyhyy.lightnovelreader.data.book.ChapterInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.MutableBookInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.Volume
+import indi.dmzz_yyhyy.lightnovelreader.data.web.SearchResult
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.ExplorationExpandedPageDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.web.exploration.ExplorationPageDataSource
@@ -29,7 +30,6 @@ import indi.dmzz_yyhyy.lightnovelreader.utils.UserAgentGenerator
 import indi.dmzz_yyhyy.lightnovelreader.utils.cache.Cache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -137,13 +137,8 @@ object Wenku8Api: WebBookDataSource {
 
     override val explorationPageIdList: List<String> = listOf("首页", "全部", "分类")
 
-    override fun search(searchType: String, keyword: String): Flow<BookInformation> {
+    override fun search(searchType: String, keyword: String): Flow<SearchResult> {
         return bookRequestDispatcher.search(searchType, keyword)
-    }
-
-    override fun stopAllSearch() {
-        coroutineScope.cancel()
-        coroutineScope = CoroutineScope(Dispatchers.IO)
     }
 
     override val searchTypeIdList =

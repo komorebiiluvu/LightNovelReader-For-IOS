@@ -3,6 +3,7 @@ package indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.book
 import indi.dmzz_yyhyy.lightnovelreader.data.book.BookInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.BookVolumes
 import indi.dmzz_yyhyy.lightnovelreader.data.book.ChapterContent
+import indi.dmzz_yyhyy.lightnovelreader.data.web.SearchResult
 import indi.dmzz_yyhyy.lightnovelreader.utils.CanBeEmpty
 import indi.dmzz_yyhyy.lightnovelreader.utils.UserAgentGenerator
 import indi.dmzz_yyhyy.lightnovelreader.utils.update
@@ -39,7 +40,7 @@ class BookRequestDispatcher: Wenku8BookDataSource {
         getChapterContent(chapterId, bookId)
     }
 
-    override fun search(searchType: String, keyword: String): Flow<BookInformation> {
+    override fun search(searchType: String, keyword: String): Flow<SearchResult> {
         return source.first().search(searchType, keyword)
     }
 }

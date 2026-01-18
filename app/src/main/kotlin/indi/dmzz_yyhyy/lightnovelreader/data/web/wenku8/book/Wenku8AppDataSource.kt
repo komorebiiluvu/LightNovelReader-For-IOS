@@ -1,7 +1,6 @@
 package indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.book
 
 import android.util.Log
-import androidx.core.net.toUri
 import cxhttp.CxHttp
 import cxhttp.response.Response
 import cxhttp.response.bodyOrNull
@@ -12,6 +11,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.book.ChapterInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.MutableBookInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.MutableChapterContent
 import indi.dmzz_yyhyy.lightnovelreader.data.book.Volume
+import indi.dmzz_yyhyy.lightnovelreader.data.web.SearchResult
 import indi.dmzz_yyhyy.lightnovelreader.data.web.wenku8.Wenku8Api
 import indi.dmzz_yyhyy.lightnovelreader.utils.CanBeEmpty
 import indi.dmzz_yyhyy.lightnovelreader.utils.CxHttpInit
@@ -219,10 +219,10 @@ class Wenku8AppDataSource(
                 }
         }
 
-    override fun search(searchType: String, keyword: String): Flow<BookInformation> = flow {
+    override fun search(searchType: String, keyword: String): Flow<SearchResult> = flow {
         val encodedKeyword = URLEncoder.encode(keyword, "gb2312")
         delay(1)
-        wenku8Api(
+        val result = wenku8Api(
             "action=search&searchtype=$searchType&searchkey=${
                 URLEncoder.encode(
                     encodedKeyword,
@@ -232,10 +232,13 @@ class Wenku8AppDataSource(
         )
             ?.select("item")
             ?.forEach { element ->
-                emit(Wenku8Api.getBookInformation(element.attr("aid").toInt()))
+                emit(SearchResult.MultipleBook(Wenku8Api.getBookInformation(element.attr("aid").toInt())))
             }
             ?.let {
-                emit(BookInformation.empty())
+                emit(SearchResult.End())
             }
+        if (result == null) {
+            emit(SearchResult.Error(Error("Failed to request the result")))
+        }
     }
 }
