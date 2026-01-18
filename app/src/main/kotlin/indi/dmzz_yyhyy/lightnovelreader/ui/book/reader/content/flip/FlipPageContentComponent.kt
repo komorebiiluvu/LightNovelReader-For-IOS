@@ -329,7 +329,7 @@ private fun SimpleFlipPageTextComponent(
                     fontSize = settingState.fontSize.sp,
                     fontLineHeight = settingState.fontLineHeight.sp,
                     fontWeight = FontWeight(settingState.fontWeigh.toInt()),
-                    fontFamily = rememberReaderFontFamily(settingState.backgroundImageUriUserData),
+                    fontFamily = rememberReaderFontFamily(settingState),
                     color = readerTextColor(settingState),
                     onZoomImage = onZoomImage
                 )

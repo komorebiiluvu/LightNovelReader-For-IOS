@@ -590,7 +590,7 @@ fun ReaderThemeSettingsList(
                 lineHeight = (settingState.fontLineHeight + settingState.fontSize).sp,
                 fontWeight = FontWeight(settingState.fontWeigh.toInt()),
                 textAlign = TextAlign.Center,
-                fontFamily = rememberReaderFontFamily(settingState.backgroundImageUriUserData),
+                fontFamily = rememberReaderFontFamily(settingState),
                 color = readerTextColor(settingState)
             )
         }

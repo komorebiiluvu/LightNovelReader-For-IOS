@@ -2,6 +2,8 @@ package indi.dmzz_yyhyy.lightnovelreader.utils
 
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,24 +50,25 @@ fun loadReaderFontFamilySafe(uri: Uri): FontFamily? {
 }
 
 @Composable
-fun rememberReaderFontFamily(
-    fontFamilyUriUserData: UriUserData,
-): FontFamily {
-    val snackbarScope = rememberCoroutineScope()
-    val uri by fontFamilyUriUserData.getFlowWithDefault(Uri.EMPTY).collectAsState(Uri.EMPTY)
-    val fontFamily = remember(uri) { loadReaderFontFamilySafe(uri) }
+fun rememberReaderFontFamily(settingState: SettingState): FontFamily {
+    val coroutineScope = rememberCoroutineScope()
+    val uri = settingState.fontFamilyUri
+    val fontFamily = remember(uri) {
+        loadReaderFontFamilySafe(uri)
+    }
 
-    val snackbarHostState = LocalSnackbarHost.current
     if (fontFamily == null && uri != Uri.EMPTY) {
+        val context = LocalContext.current
+        coroutineScope.launch(Dispatchers.IO) {
+            settingState.fontFamilyUriUserData.set(Uri.EMPTY)
+        }
         LaunchedEffect(uri) {
-            withContext(Dispatchers.IO) { fontFamilyUriUserData.set(Uri.EMPTY) }
-            snackbarScope.launch {
-                snackbarHostState.showSnackbar("自定义字体加载失败，已恢复为默认。")
-            }
+            settingState.fontFamilyUriUserData.asynchronousSet(Uri.EMPTY)
+            Toast.makeText(context, "字体加载失败，已恢复为默认字体", Toast.LENGTH_SHORT).show()
         }
     }
 
-    return fontFamily ?: FontFamily.Default
+    return fontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily as FontFamily
 }
 
 @Composable
