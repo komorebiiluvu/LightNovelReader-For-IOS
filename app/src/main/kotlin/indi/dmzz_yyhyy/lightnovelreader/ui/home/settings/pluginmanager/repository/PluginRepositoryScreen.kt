@@ -58,9 +58,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import indi.dmzz_yyhyy.lightnovelreader.R
-import indi.dmzz_yyhyy.lightnovelreader.data.plugin.PluginInfo
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.PluginMetadata
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.LnrSnackbar
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.pluginmanager.PluginMetadata
 import indi.dmzz_yyhyy.lightnovelreader.utils.LocalSnackbarHost
 import indi.dmzz_yyhyy.lightnovelreader.utils.showSnackbar
 import kotlinx.coroutines.launch
@@ -69,7 +68,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PluginRepositoryScreen(
     uiState: PluginRepositoryUiState,
-    installedPluginList: List<PluginInfo>,
+    installedPluginList: List<PluginMetadata>,
     onRefresh: () -> Unit,
     onClickBack: () -> Unit,
     onClickSetRepoUrl: () -> Unit,
@@ -99,11 +98,11 @@ fun PluginRepositoryScreen(
             }
         }
     ) { paddingValues ->
-        val pluginMetadataList = uiState.pluginMetadataList
+        val pluginMetadataList = uiState.remotePluginMetadataList
 
-        val pluginListToShow = remember(uiState.indexList, uiState.pluginMetadataList) {
+        val pluginListToShow = remember(uiState.indexList, uiState.remotePluginMetadataList) {
             uiState.indexList.ifEmpty {
-                uiState.pluginMetadataList.map {
+                uiState.remotePluginMetadataList.map {
                     RepoIndexEntry(id = it.id, name = it.name)
                 }
             }
@@ -147,11 +146,11 @@ fun PluginRepositoryScreen(
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(pluginListToShow, key = { it.id }) { indexEntry ->
-                    val metadata = uiState.pluginMetadataList.firstOrNull { it.id == indexEntry.id }
+                    val metadata = uiState.remotePluginMetadataList.firstOrNull { it.id == indexEntry.id }
                     val isLoadingMetadata = uiState.metadataLoadingStates[indexEntry.id] == true
 
                     PluginCard(
-                        installed = installedPluginList.firstOrNull { it.id == indexEntry.id } != null,
+                        installed = installedPluginList.firstOrNull { it.packageName == indexEntry.id } != null,
                         inQueue = uiState.queue.firstOrNull{ it == indexEntry.id} != null,
                         metadata = metadata,
                         indexEntry = indexEntry,

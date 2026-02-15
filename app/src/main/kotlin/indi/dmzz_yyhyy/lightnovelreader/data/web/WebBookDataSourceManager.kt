@@ -18,7 +18,7 @@ class WebBookDataSourceManager @Inject constructor (
     val userDataRepository: UserDataRepository
 ): WebBookDataSourceManagerApi {
     private val _webDataSourceItems = mutableListOf<WebDataSourceItem>()
-    private val webDataSourceItemListMap = mutableMapOf<DexClassLoader, List<WebDataSourceItem>>()
+    private val webDataSourceItemListMap = mutableMapOf<String, List<WebDataSourceItem>>()
     val webDataSourceItems: List<WebDataSourceItem> = _webDataSourceItems
 
     private val mutableWebDataSourceProvider = MutableWebDataSourceProvider()
@@ -39,15 +39,16 @@ class WebBookDataSourceManager @Inject constructor (
 
     override fun getWebDataSource(): WebBookDataSource = mutableWebDataSourceProvider.value
 
-    fun loadWebDataSourcesFromClassLoader(classLoader: DexClassLoader, injector: PluginInjector, scanPackage: String = "") {
+    fun loadWebDataSourcesFromClassLoader(classLoader: DexClassLoader, injector: PluginInjector, packageName: String) {
         val items = mutableListOf<WebDataSourceItem>()
-        AnnotationScanner.findAnnotatedClasses(classLoader, WebDataSource::class.java, scanPackage)
-            .forEach {
+        AnnotationScanner.findAnnotatedClasses(classLoader, WebDataSource::class.java, packageName)
+            .component1()
+            ?.forEach {
                 if (!WebBookDataSource::class.java.isAssignableFrom(it)) return
                 val instance = injector.provide<WebBookDataSource>(it)
                 if (instance is WebBookDataSource) items.add(loadWebDataSourceClass(instance))
             }
-        webDataSourceItemListMap[classLoader] = items
+        webDataSourceItemListMap[packageName] = items
     }
 
     fun loadWebDataSourceClass(instance: WebBookDataSource): WebDataSourceItem {
@@ -61,8 +62,8 @@ class WebBookDataSourceManager @Inject constructor (
         return item
     }
 
-    fun unloadWebDataSourcesFromClassLoader(dexClassLoader: DexClassLoader) {
-        webDataSourceItemListMap[dexClassLoader]?.let { _webDataSourceItems.removeAll(it) }
+    fun unloadWebDataSourcesFromClassLoader(packageName: String) {
+        webDataSourceItemListMap[packageName]?.let { _webDataSourceItems.removeAll(it) }
     }
 
     fun getWebDataSourceProvider(): WebBookDataSourceProvider {

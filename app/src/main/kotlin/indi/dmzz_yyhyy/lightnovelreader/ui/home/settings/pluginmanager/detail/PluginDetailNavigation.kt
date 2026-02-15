@@ -7,6 +7,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.PluginSource
 import io.nightfish.lightnovelreader.api.ui.LocalNavController
 import indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.pluginmanager.PluginManagerViewModel
 import indi.dmzz_yyhyy.lightnovelreader.ui.navigation.Route
@@ -22,7 +23,7 @@ fun NavGraphBuilder.settingsPluginManagerDetailDestination() {
         val enabledPluginList by viewModel.enabledPluginFlow.collectAsState(emptyList())
         val enabledPluginPackageList by viewModel.enabledPluginPackagesFlow.collectAsState(emptyList())
         val enabled = when (plugin?.source) {
-            indi.dmzz_yyhyy.lightnovelreader.data.plugin.PluginSource.InstalledApp -> {
+            PluginSource.InstalledApp -> {
                 val pkg = plugin.packageName
                 pkg != null && enabledPluginPackageList.contains(pkg)
             }

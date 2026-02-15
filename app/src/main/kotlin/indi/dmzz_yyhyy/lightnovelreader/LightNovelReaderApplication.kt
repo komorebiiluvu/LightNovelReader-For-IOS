@@ -64,7 +64,7 @@ class LightNovelReaderApplication : Application(), Configuration.Provider {
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })
-        pluginManager.loadAllPlugins()
+        pluginManager.initAllPlugin()
         coroutineScope.launch(Dispatchers.IO) {
             loggerRepository.logLevel = LogLevel.from(userDataRepository.stringUserData(UserDataPath.Settings.Data.LogLevel.path).getOrDefault("none"))
             loggerRepository.startLogging()

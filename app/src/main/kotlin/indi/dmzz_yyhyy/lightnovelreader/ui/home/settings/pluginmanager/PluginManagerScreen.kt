@@ -38,7 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import indi.dmzz_yyhyy.lightnovelreader.BuildConfig
 import indi.dmzz_yyhyy.lightnovelreader.R
-import indi.dmzz_yyhyy.lightnovelreader.data.plugin.PluginInfo
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.PluginMetadata
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.EmptyPage
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.PluginCard
 import indi.dmzz_yyhyy.lightnovelreader.utils.LocalClaimSnackbarHost
@@ -55,13 +55,13 @@ fun PluginManagerScreen(
     onClickPluginApps: () -> Unit,
     onClickDetail: (String) -> Unit,
     onClickDelete: (String) -> Unit,
-    onClickSwitch: (PluginInfo) -> Unit,
+    onClickSwitch: (PluginMetadata) -> Unit,
     onClickKeyAlert: () -> Unit,
     onClickErrorAlert: () -> Unit,
     onClickIncompatibleAlert: () -> Unit,
     onClickPluginRepo: () -> Unit,
     onClickCheckUpdate: (String) -> Unit,
-    pluginInfoList: List<PluginInfo>,
+    pluginInfoList: List<PluginMetadata>,
     onClickShowSignatures: (String) -> Unit
 ) {
     val enterAlwaysScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
