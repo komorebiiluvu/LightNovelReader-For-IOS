@@ -132,9 +132,11 @@ fun DetailScreen(
 
     val exportBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val infoBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
+    val editInfoBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    
     var showExportBottomSheet by remember { mutableStateOf(false) }
     var showInfoBottomSheet by remember { mutableStateOf(false) }
+    var showEditInfoBottomSheet by remember { mutableStateOf(false) }
     var exportSettings by remember { mutableStateOf(ExportSettings()) }
 
     val lazyListState = rememberLazyListState()
@@ -234,6 +236,7 @@ fun DetailScreen(
         ) {
             TopBar(
                 title = uiState.bookInformation.title,
+                uiState = uiState,
                 readingProgress = uiState.userReadingData.readingProgress,
                 volumesEmpty = volumesEmpty,
                 onClickBackButton = onClickBackButton,
@@ -245,7 +248,8 @@ fun DetailScreen(
                 },
                 onClickMarkAsRead = onClickMarkAsRead,
                 scrollBehavior = scrollBehavior,
-                isCollapsed = isCollapsed
+                isCollapsed = isCollapsed,
+                onClickLocalBookEdit = { showEditInfoBottomSheet = true }
             )
 
             Crossfade(
@@ -277,7 +281,7 @@ fun DetailScreen(
             }
         }
 
-        if (showExportBottomSheet) {
+        AnimatedVisibility(visible = showExportBottomSheet) {
             ExportBottomSheet(
                 sheetState = exportBottomSheetState,
                 bookVolumes = uiState.bookVolumes,
@@ -293,6 +297,14 @@ fun DetailScreen(
                 bookVolumes = uiState.bookVolumes,
                 sheetState = infoBottomSheetState,
                 onDismissRequest = { showInfoBottomSheet = false }
+            )
+        }
+        AnimatedVisibility(visible = showEditInfoBottomSheet) {
+            EditInfoBottomSheet(
+                sheetState = editInfoBottomSheetState,
+                bookInformation = uiState.bookInformation,
+                onDismissRequest = { showEditInfoBottomSheet = false },
+                onClickSave = {  }
             )
         }
 
@@ -550,6 +562,7 @@ private fun DetailContent(
 @Composable
 private fun TopBar(
     title: String,
+    uiState: DetailUiState,
     readingProgress: Float,
     volumesEmpty: Boolean,
     onClickBackButton: () -> Unit,
@@ -557,7 +570,8 @@ private fun TopBar(
     onClickTextFormatting: () -> Unit,
     onClickMarkAsRead: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
-    isCollapsed: Boolean
+    isCollapsed: Boolean,
+    onClickLocalBookEdit: () -> Unit
 ) {
     val titleProgress by animateFloatAsState(
         targetValue = if (isCollapsed) 1f else 0f,
@@ -616,7 +630,9 @@ private fun TopBar(
                     volumesEmpty = volumesEmpty,
                     onClickExport = onClickExport,
                     onClickTextFormatting = onClickTextFormatting,
-                    onClickMarkAsRead = onClickMarkAsRead
+                    onClickMarkAsRead = onClickMarkAsRead,
+                    isLocalBook = uiState.isLocalBook,
+                    onClickLocalBookEdit = onClickLocalBookEdit
                 )
             },
             scrollBehavior = scrollBehavior
@@ -650,7 +666,9 @@ private fun TopBarActions(
     volumesEmpty: Boolean,
     onClickExport: () -> Unit,
     onClickTextFormatting: () -> Unit,
-    onClickMarkAsRead: () -> Unit
+    onClickMarkAsRead: () -> Unit,
+    isLocalBook: Boolean,
+    onClickLocalBookEdit: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -665,6 +683,15 @@ private fun TopBarActions(
             Icon(painterResource(id = R.drawable.more_vert_24px), contentDescription = "more")
         }
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+            if (/*isLocalBook*/true/*FIXME:1*/) {
+                DropdownMenuItem(
+                    text = { Text("编辑书本信息", style = typography.bodyLarge) },
+                    onClick = {
+                        menuExpanded = false
+                        onClickLocalBookEdit()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.mark_as_read), style = typography.bodyLarge) },
                 onClick = {

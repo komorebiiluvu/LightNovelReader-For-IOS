@@ -84,6 +84,8 @@ object Route {
                 )
             }
             @Serializable
+            object BookManager
+            @Serializable
             object Debug
             @Serializable
             object Theme

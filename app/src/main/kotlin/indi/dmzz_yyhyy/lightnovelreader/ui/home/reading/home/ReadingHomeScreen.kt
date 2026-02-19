@@ -108,6 +108,7 @@ fun ReadingScreen(
     @Suppress("unused") sharedTransitionScope: SharedTransitionScope,
     loadBookInfo: (String) -> Unit,
     onClickOpenChapters: (String) -> Unit,
+    onClickBookManager: () -> Unit
 ) {
     LifecycleEventEffect(Lifecycle.Event.ON_CREATE) {
         updateReadingBooks()
@@ -116,6 +117,7 @@ fun ReadingScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         TopBar(
             onClickDownloadManager = onClickDownloadManager,
+            onClickBookManager = onClickBookManager,
             onClickStats = onClickStats
         )
 
@@ -370,6 +372,7 @@ fun ReadingBookCardSkeleton(
 @Composable
 private fun TopBar(
     onClickDownloadManager: () -> Unit,
+    onClickBookManager: () -> Unit,
     onClickStats: () -> Unit
 ) {
     TopAppBar(
@@ -385,6 +388,11 @@ private fun TopBar(
             IconButton(onClick = onClickDownloadManager) {
                 Icon(
                     painter = painterResource(R.drawable.download_24px), null
+                )
+            }
+            IconButton(onClick = onClickBookManager) {
+                Icon(
+                    painter = painterResource(R.drawable.folder_24px), null
                 )
             }
             IconButton(

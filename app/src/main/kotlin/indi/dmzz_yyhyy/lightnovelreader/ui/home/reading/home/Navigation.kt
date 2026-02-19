@@ -14,6 +14,7 @@ import indi.dmzz_yyhyy.lightnovelreader.ui.book.reader.ChapterSelectionBottomShe
 import indi.dmzz_yyhyy.lightnovelreader.ui.book.reader.navigateToBookReaderDestination
 import indi.dmzz_yyhyy.lightnovelreader.ui.downloadmanager.navigateToDownloadManager
 import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.navigateToReadingStatsDestination
+import indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.bookmanager.navigateToSettingsBookManagerDestination
 import indi.dmzz_yyhyy.lightnovelreader.ui.navigation.Route
 import io.nightfish.lightnovelreader.api.ui.LocalNavController
 
@@ -45,7 +46,8 @@ fun NavGraphBuilder.readingHomeDestination(sharedTransitionScope: SharedTransiti
             loadBookInfo = viewModel::loadBookInfo,
             onRemoveBook = viewModel::removeFromReadingList,
             onClickOpenChapters = viewModel::openChapters,
-            onAddBook = viewModel::addToReadingList
+            onAddBook = viewModel::addToReadingList,
+            onClickBookManager = navController::navigateToSettingsBookManagerDestination
         )
 
         if (chapterSheetUi != null) {

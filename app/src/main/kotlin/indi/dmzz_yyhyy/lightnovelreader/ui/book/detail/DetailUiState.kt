@@ -18,6 +18,7 @@ interface DetailUiState {
     val isCached: Boolean
     val downloadItem: DownloadItem?
     val isInBookshelf: Boolean
+    val isLocalBook: Boolean
 }
 
 class MutableDetailUiState: DetailUiState {
@@ -28,6 +29,6 @@ class MutableDetailUiState: DetailUiState {
     override var isCached: Boolean by mutableStateOf(false)
     override var downloadItem: DownloadItem? by mutableStateOf(null)
     override var isInBookshelf: Boolean by mutableStateOf(false)
+    override var isLocalBook: Boolean by mutableStateOf(false)
 }
-
 
