@@ -37,7 +37,7 @@ interface BookInformationDao {
     suspend fun getEntity(id: String): BookInformationEntity?
 
     @Query("select * from book_information")
-    suspend fun getAllEntities(): List<BookInformationEntity>
+    fun getAllEntities(): List<BookInformationEntity>
 
     @Transaction
     suspend fun get(id: String): BookInformation? {
@@ -64,4 +64,10 @@ interface BookInformationDao {
 
     @Query("delete from book_information")
     fun clear()
+
+    @Query("SELECT * FROM book_information WHERE id IN (:ids)")
+    suspend fun getEntitiesByIds(ids: List<String>): List<BookInformationEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<BookInformationEntity>)
 }

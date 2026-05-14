@@ -10,7 +10,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -22,9 +22,9 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import indi.dmzz_yyhyy.lightnovelreader.ui.components.ExportContext
+import indi.dmzz_yyhyy.lightnovelreader.ui.components.ExportOptions
+import indi.dmzz_yyhyy.lightnovelreader.ui.components.ExportOptionsSaver
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.ExportUserDataDialog
-import indi.dmzz_yyhyy.lightnovelreader.ui.components.MutableExportContext
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.SliderValueDialog
 import indi.dmzz_yyhyy.lightnovelreader.ui.dialog.SliderValueDialogViewModel
 import indi.dmzz_yyhyy.lightnovelreader.ui.dialog.UpdatesAvailableDialogViewModel
@@ -132,10 +132,18 @@ private fun NavGraphBuilder.exportUserDataDialog() {
         val context = LocalContext.current
         val workManager = WorkManager.getInstance(context)
         val viewModel = hiltViewModel<ExportUserDataDialogViewModel>()
-        var exportContext: ExportContext by remember { mutableStateOf(MutableExportContext()) }
+        var exportOptions by rememberSaveable(stateSaver = ExportOptionsSaver) { mutableStateOf(ExportOptions()) }
         val saveDataToFileLauncher = uriLauncher { uri ->
             CoroutineScope(Dispatchers.Main).launch {
-                workManager.getWorkInfoByIdFlow(viewModel.exportToFile(uri, exportContext).id).collect {
+                workManager.getWorkInfoByIdFlow(
+                    viewModel.exportToFile(
+                        uri = uri,
+                        exportLocalBookCache = exportOptions.localBookCache,
+                        exportBookshelf = exportOptions.bookshelf,
+                        exportReadingData = exportOptions.readingData,
+                        exportSettings = exportOptions.settings,
+                    ).id
+                ).collect {
                     when (it?.state) {
                         WorkInfo.State.FAILED -> {
                             Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
@@ -150,14 +158,21 @@ private fun NavGraphBuilder.exportUserDataDialog() {
             navController.popBackStack()
         }
         ExportUserDataDialog(
+            exportOptions = exportOptions,
             onDismissRequest = { navController.popBackStack() },
+            onExportOptionsChange = { exportOptions = it },
             onClickSaveAndSend = {
-                viewModel.exportAndSendToFile(exportContext, context) {
+                viewModel.exportAndSendToFile(
+                    exportLocalBookCache = exportOptions.localBookCache,
+                    exportBookshelf = exportOptions.bookshelf,
+                    exportReadingData = exportOptions.readingData,
+                    exportSettings = exportOptions.settings,
+                    context = context
+                ) {
                     navController.popBackStack()
                 }
             },
             onClickSaveToFile = {
-                exportContext = it
                 createDataFile("LightNovelReaderData", saveDataToFileLauncher)
             }
         )

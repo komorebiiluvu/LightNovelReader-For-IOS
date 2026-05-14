@@ -34,6 +34,20 @@ interface FormattingRuleDao {
     @Query("delete from formatting_rule where id = :id")
     suspend fun deleteRule(id: Int)
 
-    @Query("delete from book_shelf")
+    @Query("delete from formatting_rule")
     fun clear()
+
+    @Query("select * from formatting_rule")
+    fun getAllBookRuleEntities(): List<FormattingRuleEntity>
+
+    @Query("SELECT * FROM formatting_rule WHERE id IN (:ids)")
+    suspend fun getBookRuleEntitiesByIds(ids: List<Int>): List<FormattingRuleEntity>
+
+    @Query("SELECT * FROM formatting_rule WHERE book_id IN (:bookIds)")
+    suspend fun getBookRuleEntitiesByBookIds(
+        bookIds: List<String>
+    ): List<FormattingRuleEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<FormattingRuleEntity>)
 }

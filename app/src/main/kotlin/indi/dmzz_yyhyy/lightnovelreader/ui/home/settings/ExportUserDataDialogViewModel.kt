@@ -15,7 +15,6 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import indi.dmzz_yyhyy.lightnovelreader.data.work.ExportDataWork
-import indi.dmzz_yyhyy.lightnovelreader.ui.components.ExportContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
@@ -28,24 +27,29 @@ class ExportUserDataDialogViewModel @Inject constructor(
 
     private fun buildExportWork(
         uri: Uri,
-        exportContext: ExportContext
+        exportLocalBookCache: Boolean,
+        exportBookshelf: Boolean,
+        exportReadingData: Boolean,
+        exportSettings: Boolean,
     ): OneTimeWorkRequest {
         return OneTimeWorkRequestBuilder<ExportDataWork>()
             .setInputData(
                 workDataOf(
                     "uri" to uri.toString(),
-                    "exportLocalBookCache" to exportContext.localBookCache,
-                    "exportBookshelf" to exportContext.bookshelf,
-                    "exportReadingData" to exportContext.readingData,
-                    "exportSetting" to exportContext.settings,
-                    "exportBookmark" to exportContext.bookmark,
+                    "exportLocalBookCache" to exportLocalBookCache,
+                    "exportBookshelf" to exportBookshelf,
+                    "exportReadingData" to exportReadingData,
+                    "exportSetting" to exportSettings,
                 )
             )
             .build()
     }
 
     fun exportAndSendToFile(
-        exportContext: ExportContext,
+        exportLocalBookCache: Boolean,
+        exportBookshelf: Boolean,
+        exportReadingData: Boolean,
+        exportSettings: Boolean,
         context: Context,
         onFinish: () -> Unit
     ) {
@@ -55,7 +59,13 @@ class ExportUserDataDialogViewModel @Inject constructor(
             "${context.packageName}.provider",
             file
         )
-        val request = buildExportWork(uri, exportContext)
+        val request = buildExportWork(
+            uri = uri,
+            exportLocalBookCache = exportLocalBookCache,
+            exportBookshelf = exportBookshelf,
+            exportReadingData = exportReadingData,
+            exportSettings = exportSettings,
+        )
 
         workManager.enqueueUniqueWork(
             uri.toString(),
@@ -83,8 +93,20 @@ class ExportUserDataDialogViewModel @Inject constructor(
         }
     }
 
-    fun exportToFile(uri: Uri, exportContext: ExportContext): OneTimeWorkRequest {
-        val workRequest = buildExportWork(uri, exportContext)
+    fun exportToFile(
+        uri: Uri,
+        exportLocalBookCache: Boolean,
+        exportBookshelf: Boolean,
+        exportReadingData: Boolean,
+        exportSettings: Boolean,
+    ): OneTimeWorkRequest {
+        val workRequest = buildExportWork(
+            uri = uri,
+            exportLocalBookCache = exportLocalBookCache,
+            exportBookshelf = exportBookshelf,
+            exportReadingData = exportReadingData,
+            exportSettings = exportSettings,
+        )
         workManager.enqueueUniqueWork(
             uri.toString(),
             ExistingWorkPolicy.REPLACE,

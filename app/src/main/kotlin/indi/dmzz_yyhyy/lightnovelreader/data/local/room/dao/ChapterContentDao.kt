@@ -1,6 +1,8 @@
 package indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.TypeConverters
@@ -53,4 +55,10 @@ interface ChapterContentDao {
 
     @Query("select * from chapter_content")
     fun getAllEntities(): List<ChapterContentEntity>
+
+    @Query("SELECT * FROM chapter_content WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<ChapterContentEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<ChapterContentEntity>)
 }

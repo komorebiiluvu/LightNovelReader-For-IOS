@@ -44,4 +44,13 @@ interface UserReadingDataDao {
 
     @Query("delete from user_reading_data")
     fun clear()
+
+    @Query("select * from user_reading_data")
+    fun getAllEntities(): List<UserReadingDataEntity>
+
+    @Query("SELECT * FROM user_reading_data WHERE id IN (:ids)")
+    suspend fun getEntitiesByIds(ids: List<String>): List<UserReadingDataEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<UserReadingDataEntity>)
 }

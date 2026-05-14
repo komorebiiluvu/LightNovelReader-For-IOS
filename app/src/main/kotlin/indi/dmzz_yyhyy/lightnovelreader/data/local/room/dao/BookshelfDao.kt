@@ -107,6 +107,18 @@ interface BookshelfDao {
     @Query("select id from book_shelf_book_metadata")
     fun getAllBookshelfBookIdsFlow(): Flow<List<String>>
 
+    @Query("SELECT * FROM book_shelf WHERE id IN (:ids)")
+    suspend fun getBookshelvesByIds(ids: List<Int>): List<BookshelfEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookshelves(entities: List<BookshelfEntity>)
+
+    @Query("SELECT * FROM book_shelf_book_metadata WHERE id IN (:ids)")
+    suspend fun getBookshelfBookMetadataEntitiesByIds(ids: List<String>): List<BookshelfBookMetadataEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookshelfBookMetadataEntities(entities: List<BookshelfBookMetadataEntity>)
+
     @Query("delete from book_shelf")
     fun clearBookshelf()
 

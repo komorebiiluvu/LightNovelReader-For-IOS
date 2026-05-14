@@ -12,10 +12,6 @@ import com.github.michaelbull.result.unwrapError
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalDataManager
-import indi.dmzz_yyhyy.lightnovelreader.utils.writeAppLocalData
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.cbor.Cbor
-import kotlinx.serialization.encodeToByteArray
 import java.io.FileOutputStream
 
 @HiltWorker
@@ -28,34 +24,36 @@ class ExportDataWork @AssistedInject constructor(
         const val TAG = "ExportDataWork"
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     override suspend fun doWork(): Result {
         val fileUri = inputData.getString("uri")?.let(Uri::parse) ?: return Result.failure()
         val exportLocalBookCache = inputData.getBoolean("exportLocalBookCache", true)
         val exportBookshelf = inputData.getBoolean("exportBookshelf", true)
         val exportReadingData = inputData.getBoolean("exportReadingData", true)
         val exportSetting = inputData.getBoolean("exportSetting", true)
-        val result = localDataManager.exportAppLocalData(
-            localBookCache = exportLocalBookCache,
-            bookshelf = exportBookshelf,
-            readingRecord = exportReadingData,
-            settings = exportSetting
-        ).andThen { appLocalData ->
-            runCatching {
-                applicationContext.contentResolver.openFileDescriptor(fileUri, "w")
-                    ?.use { parcelFileDescriptor ->
-                        FileOutputStream(parcelFileDescriptor.fileDescriptor).use {
-                            it.writeAppLocalData(Cbor.encodeToByteArray(appLocalData))
-                        }
-                    }
+
+        val result = runCatching {
+            applicationContext.contentResolver.openFileDescriptor(fileUri, "w")
+                ?: error("Failed to open export file descriptor")
+        }.andThen { parcelFileDescriptor ->
+            parcelFileDescriptor.use {
+                FileOutputStream(it.fileDescriptor).use { outputStream ->
+                    localDataManager.exportCurrentDataSourceLocalData(
+                        outputStream = outputStream,
+                        localBookCache = exportLocalBookCache,
+                        bookshelf = exportBookshelf,
+                        readingRecord = exportReadingData,
+                        settings = exportSetting
+                    )
+                }
             }
         }
 
         if (result.isErr) {
-            Log.e(TAG, "Failed to get AppLocalData")
+            Log.e(TAG, "Failed to export app local data")
             result.unwrapError().printStackTrace()
             return Result.failure()
         }
+
         return Result.success()
     }
 }

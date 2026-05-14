@@ -52,6 +52,12 @@ interface BookRecordDao {
     @Query("DELETE FROM book_records")
     fun clearRecords()
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertBookRecords(records: List<BookRecordEntity>)
+
+    @Query("SELECT * FROM book_records WHERE book_id IN (:bookIds)")
+    suspend fun getBookRecordsByBookIds(bookIds: List<String>): List<BookRecordEntity>
+
     @Transaction
     fun clear() {
         clearRecords()

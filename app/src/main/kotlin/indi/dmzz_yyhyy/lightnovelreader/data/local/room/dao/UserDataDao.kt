@@ -33,4 +33,10 @@ interface UserDataDao: io.nightfish.lightnovelreader.api.userdata.UserDataDaoApi
 
     @Query("select * from user_data")
     fun getAllEntities(): List<UserDataEntity>
+
+    @Query("SELECT * FROM user_data WHERE path IN (:paths)")
+    suspend fun getEntitiesByPaths(paths: List<String>): List<UserDataEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<UserDataEntity>)
 }

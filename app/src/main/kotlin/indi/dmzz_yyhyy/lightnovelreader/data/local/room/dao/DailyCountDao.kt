@@ -27,6 +27,12 @@ interface DailyCountDao {
     @Query("SELECT * FROM daily_count WHERE date = :date")
     fun getEntity(date: LocalDate): DailyCountEntity?
 
+    @Query("SELECT * FROM daily_count WHERE date IN (:dates)")
+    suspend fun getEntitiesByDates(dates: List<LocalDate>): List<DailyCountEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<DailyCountEntity>)
+
     @Query("DELETE FROM daily_count")
     fun clear()
 }

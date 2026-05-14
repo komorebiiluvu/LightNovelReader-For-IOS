@@ -47,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -235,29 +236,28 @@ fun SliderDialog(
 }
 
 
-interface ExportContext {
-    val localBookCache: Boolean
-    val bookshelf: Boolean
-    val readingData: Boolean
-    val settings: Boolean
-    val bookmark: Boolean
-}
+data class ExportOptions(
+    val localBookCache: Boolean = true,
+    val bookshelf: Boolean = true,
+    val readingData: Boolean = true,
+    val settings: Boolean = true,
+)
 
-class MutableExportContext: ExportContext {
-    override var localBookCache by mutableStateOf(true)
-    override var bookshelf by mutableStateOf(true)
-    override var readingData by mutableStateOf(true)
-    override var settings by mutableStateOf(true)
-    override var bookmark by mutableStateOf(true)
-}
+val ExportOptionsSaver: Saver<ExportOptions, List<Boolean>> = Saver(
+    save = { listOf(it.localBookCache, it.bookshelf, it.readingData, it.settings) },
+    restore = { (localBookCache, bookshelf, readingData, settings) ->
+        ExportOptions(localBookCache, bookshelf, readingData, settings)
+    }
+)
 
 @Composable
 fun ExportUserDataDialog(
+    exportOptions: ExportOptions,
     onDismissRequest: () -> Unit,
-    onClickSaveAndSend: (ExportContext) -> Unit,
-    onClickSaveToFile: (ExportContext) -> Unit
+    onExportOptionsChange: (ExportOptions) -> Unit,
+    onClickSaveAndSend: () -> Unit,
+    onClickSaveToFile: () -> Unit
 ) {
-    val mutableExportContext = remember { MutableExportContext() }
     val listItemModifier = Modifier
         .sizeIn(minWidth = 280.dp, maxWidth = 500.dp)
         .fillMaxWidth()
@@ -273,40 +273,42 @@ fun ExportUserDataDialog(
                 modifier = listItemModifier,
                 title = stringResource(R.string.dialog_snap_local_book_cache),
                 supportingText = stringResource(R.string.dialog_snap_local_book_cache_text),
-                checked = mutableExportContext.localBookCache,
-                onCheckedChange = { mutableExportContext.localBookCache = it }
+                checked = exportOptions.localBookCache,
+                onCheckedChange = { onExportOptionsChange(exportOptions.copy(localBookCache = it)) }
             )
             HorizontalDivider(Modifier.padding(horizontal = 14.dp))
             CheckBoxListItem(
                 modifier = listItemModifier,
                 title = stringResource(R.string.dialog_snap_bookshelf),
                 supportingText = stringResource(R.string.dialog_snap_bookshelf_text),
-                checked = mutableExportContext.bookshelf,
-                onCheckedChange = { mutableExportContext.bookshelf = it }
+                checked = exportOptions.bookshelf,
+                onCheckedChange = { onExportOptionsChange(exportOptions.copy(bookshelf = it)) }
             )
             HorizontalDivider(Modifier.padding(horizontal = 14.dp))
             CheckBoxListItem(
                 modifier = listItemModifier,
                 title = stringResource(R.string.dialog_snap_reading_data),
                 supportingText = stringResource(R.string.dialog_snap_reading_data_text),
-                checked = mutableExportContext.readingData,
-                onCheckedChange = { mutableExportContext.readingData = it }
+                checked = exportOptions.readingData,
+                onCheckedChange = { onExportOptionsChange(exportOptions.copy(readingData = it)) }
             )
             HorizontalDivider(Modifier.padding(horizontal = 14.dp))
             CheckBoxListItem(
                 modifier = listItemModifier,
                 title = stringResource(R.string.dialog_snap_settings),
                 supportingText = stringResource(R.string.dialog_snap_settings_text),
-                checked = mutableExportContext.settings,
-                onCheckedChange = { mutableExportContext.settings = it }
+                checked = exportOptions.settings,
+                onCheckedChange = { onExportOptionsChange(exportOptions.copy(settings = it)) }
             )
             /*HorizontalDivider(Modifier.padding(horizontal = 14.dp))
             CheckBoxListItem(
                 modifier = listItemModifier,
                 title = stringResource(R.string.dialog_snap_bookmarks),
                 supportingText = stringResource(R.string.dialog_snap_bookmarks_text),
-                checked = mutableExportContext.bookmark,
-                onCheckedChange = { mutableExportContext.bookmark = it }
+                checked = exportContext.bookmark,
+                onCheckedChange = {
+                    onExportContextChange(exportContext.copy(bookmark = it))
+                }
             )
             HorizontalDivider(Modifier.padding(horizontal = 14.dp))*/
         }
@@ -326,7 +328,7 @@ fun ExportUserDataDialog(
                 )
             }
             TextButton(
-                onClick = { onClickSaveAndSend(mutableExportContext) }
+                onClick = onClickSaveAndSend
             ) {
                 Text(
                     text = stringResource(R.string.export_and_share),
@@ -335,7 +337,7 @@ fun ExportUserDataDialog(
                 )
             }
             TextButton(
-                onClick = { onClickSaveToFile(mutableExportContext) }
+                onClick = onClickSaveToFile
             ) {
                 Text(
                     text = stringResource(R.string.export_to_file),

@@ -91,6 +91,18 @@ interface BookVolumesDao {
     @Query("select * from chapter_information")
     fun getAllChapterInformationEntities(): List<ChapterInformationEntity>
 
+    @Query("SELECT * FROM chapter_information WHERE id IN (:ids)")
+    suspend fun getChapterInformationEntitiesByIds(ids: List<String>): List<ChapterInformationEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChapterInformationEntities(entities: List<ChapterInformationEntity>)
+
+    @Query("SELECT * FROM volume WHERE volume_id IN (:ids)")
+    suspend fun getVolumeEntitiesByIds(ids: List<String>): List<VolumeEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVolumes(entities: List<VolumeEntity>)
+
     @Query("select * from volume")
     fun getAllVolumeEntities(): List<VolumeEntity>
 }
