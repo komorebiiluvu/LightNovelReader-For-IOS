@@ -4,11 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
-import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +27,8 @@ import indi.dmzz_yyhyy.lightnovelreader.ui.components.ImportUserDataDialog
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.SettingsClickableEntry
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.SettingsSwitchEntry
 import indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.SettingState
+import indi.dmzz_yyhyy.lightnovelreader.utils.LocalSnackbarHost
+import indi.dmzz_yyhyy.lightnovelreader.utils.showSnackbar
 import indi.dmzz_yyhyy.lightnovelreader.utils.uriLauncher
 import kotlinx.coroutines.launch
 
@@ -42,6 +44,7 @@ fun DataSettingsList(
     val context = LocalContext.current
     val workManager = WorkManager.getInstance(context)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHost.current
 
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
@@ -56,13 +59,24 @@ fun DataSettingsList(
                         isImporting = false
                         showImportDialog = false
                         pendingImportUri = null
-                        Toast.makeText(context, dataImportFailedText, Toast.LENGTH_SHORT).show()
+                        showSnackbar(
+                            coroutineScope = scope,
+                            hostState = snackbarHostState,
+                            message = dataImportFailedText,
+                            withDismissAction = true,
+                            duration = SnackbarDuration.Long
+                        )
                     }
                     WorkInfo.State.SUCCEEDED -> {
                         isImporting = false
                         showImportDialog = false
                         pendingImportUri = null
-                        Toast.makeText(context, dataImportSuccessText, Toast.LENGTH_SHORT).show()
+                        showSnackbar(
+                            coroutineScope = scope,
+                            hostState = snackbarHostState,
+                            message = dataImportSuccessText,
+                            withDismissAction = true
+                        )
                     }
                     WorkInfo.State.CANCELLED -> {
                         isImporting = false

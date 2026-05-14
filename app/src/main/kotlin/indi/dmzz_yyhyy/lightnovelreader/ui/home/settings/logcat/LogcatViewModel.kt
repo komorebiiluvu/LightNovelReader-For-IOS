@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import indi.dmzz_yyhyy.lightnovelreader.data.logging.LogEntry
+import indi.dmzz_yyhyy.lightnovelreader.data.logging.LogLevel
 import indi.dmzz_yyhyy.lightnovelreader.data.logging.LoggerRepository
 import javax.inject.Inject
 
@@ -15,9 +16,22 @@ class LogcatViewModel @Inject constructor (
     private val _uiState = MutableLogcatUiState()
     val uiState: LogcatUiState = _uiState
 
+    fun syncState() {
+        _uiState.isLoggingEnabled = loggerRepository.logLevel != LogLevel.NONE
+        if (_uiState.selectedLogFile.isBlank()) {
+            _uiState.selectedLogFile = LoggerRepository.REALTIME_LOG
+        }
+        if (!_uiState.isLoggingEnabled && !_uiState.isFileMode) {
+            _uiState.displayedLogEntries = emptyList()
+        }
+    }
+
     fun startLogging() {
+        syncState()
+        if (!_uiState.isLoggingEnabled) return
         loggerRepository.startLogging()
         _uiState.isFileMode = false
+        _uiState.selectedLogFile = LoggerRepository.REALTIME_LOG
         _uiState.displayedLogEntries = loggerRepository.realTimeLogEntries
         Log.i("Logger", "----- history")
     }
@@ -41,15 +55,20 @@ class LogcatViewModel @Inject constructor (
 
     fun deleteLogFile(fileName: String) {
         loggerRepository.deleteLogFile(fileName)
-        onSelectLogFile("实时")
+        onSelectLogFile(LoggerRepository.REALTIME_LOG)
     }
 
     fun onSelectLogFile(fileName: String) {
-        _uiState.isFileMode =  fileName.startsWith("lnr")
+        _uiState.isFileMode = fileName != LoggerRepository.REALTIME_LOG
         _uiState.selectedLogFile = fileName
-        loggerRepository.loadLogFile(fileName)
+        if (_uiState.isFileMode) {
+            loggerRepository.loadLogFile(fileName)
+        } else {
+            syncState()
+            _uiState.displayedLogEntries = loggerRepository.realTimeLogEntries
+        }
     }
 
     val logFilenameList: List<String>
-        get() = loggerRepository.getAvailableLogFiles() + "实时"
+        get() = loggerRepository.getAvailableLogFiles() + LoggerRepository.REALTIME_LOG
 }

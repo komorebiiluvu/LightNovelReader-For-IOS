@@ -53,7 +53,9 @@ import androidx.compose.ui.unit.sp
 import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.logging.LogEntry
 import indi.dmzz_yyhyy.lightnovelreader.data.logging.LogLevel
+import indi.dmzz_yyhyy.lightnovelreader.data.logging.LoggerRepository
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.AnimatedTextLine
+import indi.dmzz_yyhyy.lightnovelreader.ui.components.EmptyPage
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -93,7 +95,15 @@ fun LogcatScreen(
         )
 
         Box(modifier = Modifier.weight(1f)) {
-            if (logEntries.isEmpty()) EmptyLogListContent()
+            if (!uiState.isFileMode && !uiState.isLoggingEnabled) {
+                EmptyPage(
+                    icon = painterResource(R.drawable.bug_report_24px),
+                    title = stringResource(R.string.log_closed_title),
+                    description = stringResource(R.string.log_closed_desc)
+                )
+            } else if (logEntries.isEmpty()) {
+                EmptyLogListContent()
+            }
             else if (unwrapLogsText) LogListContent(logEntries, listState)
             else UnWrapLogListContent(logEntries, listState)
         }
@@ -128,7 +138,7 @@ private fun TopBar(
                     style = MaterialTheme.typography.displayLarge
                 )
                 AnimatedTextLine(
-                    text = uiState.selectedLogFile,
+                    text = subTitle(uiState.selectedLogFile),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary,
                     overflow = TextOverflow.Ellipsis
@@ -164,6 +174,12 @@ private fun TopBar(
     )
 }
 
+@Composable
+private fun subTitle(fileName: String): String {
+    return if (fileName == LoggerRepository.REALTIME_LOG) stringResource(R.string.log_realtime)
+    else fileName
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,7 +212,7 @@ private fun BottomBar(
                 modifier = Modifier.weight(1f)
             ) {
                 TextField(
-                    value = uiState.selectedLogFile,
+                    value = subTitle(uiState.selectedLogFile),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.log_source)) },
@@ -261,9 +277,9 @@ private fun BottomBar(
                 ) {
                     DropdownMenuItem(
                         text = {
-                            Column {
+                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
                                 Text(stringResource(R.string.log_clear), style = MaterialTheme.typography.bodyLarge)
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(2.dp))
                                 Text(
                                     text = stringResource(R.string.log_clear_desc),
                                     style = MaterialTheme.typography.labelMedium,
@@ -323,13 +339,13 @@ private fun parseFileLabel(fileName: String): Pair<String, String> {
         null
     }
     val subLabel = if (prefix != null && timestamp != null) "$prefix - $timestamp" else ""
-    return fileName to subLabel
+    return subTitle(fileName) to subLabel
 }
 
 @Composable
 private fun colorForFile(fileName: String): Color {
     return when {
-        fileName == "实时" -> Color(0xFF4CAF50)
+        fileName == LoggerRepository.REALTIME_LOG -> Color(0xFF4CAF50)
         fileName.startsWith("lnr_panic_") -> Color(0xFFF44336)
         fileName.startsWith("lnr_export_") -> Color(0xFF2196F3)
         else -> MaterialTheme.colorScheme.onSurfaceVariant

@@ -9,12 +9,14 @@ import indi.dmzz_yyhyy.lightnovelreader.data.logging.LogEntry
 @Stable
 interface LogcatUiState {
     val isFileMode: Boolean
+    val isLoggingEnabled: Boolean
     val selectedLogFile: String
     val displayedLogEntries: List<LogEntry>
 }
 
 class MutableLogcatUiState : LogcatUiState {
     override var isFileMode: Boolean by mutableStateOf(false)
-    override var selectedLogFile: String by mutableStateOf("实时")
+    override var isLoggingEnabled: Boolean by mutableStateOf(false)
+    override var selectedLogFile: String by mutableStateOf("")
     override var displayedLogEntries: List<LogEntry> by mutableStateOf(emptyList())
 }

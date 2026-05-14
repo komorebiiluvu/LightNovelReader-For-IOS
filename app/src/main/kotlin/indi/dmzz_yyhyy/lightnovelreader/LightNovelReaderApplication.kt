@@ -56,8 +56,12 @@ class LightNovelReaderApplication : Application(), Configuration.Provider {
         matomoAnalytics.trackAppLaunch()
         pluginManager.initAllPlugin()
         coroutineScope.launch(Dispatchers.IO) {
-            loggerRepository.logLevel = LogLevel.from(userDataRepository.stringUserData(UserDataPath.Settings.Data.LogLevel.path).getOrDefault("none"))
-            loggerRepository.startLogging()
+            loggerRepository.updateLogLevel(
+                LogLevel.from(
+                    userDataRepository.stringUserData(UserDataPath.Settings.Data.LogLevel.path)
+                        .getOrDefault("none")
+                )
+            )
         }
         coroutineScope.launch(Dispatchers.IO) {
             ProxyPool.enable = userDataRepository.booleanUserData(UserDataPath.Settings.Data.IsUseProxy.path).getOrDefault(false)

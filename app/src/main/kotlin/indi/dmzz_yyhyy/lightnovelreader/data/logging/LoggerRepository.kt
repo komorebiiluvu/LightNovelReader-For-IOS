@@ -5,6 +5,9 @@ import android.content.Intent
 import android.os.Process
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import indi.dmzz_yyhyy.lightnovelreader.utils.buildReportHeader
@@ -26,15 +29,31 @@ import kotlin.coroutines.cancellation.CancellationException
 class LoggerRepository @Inject constructor(
     @field:ApplicationContext private val context: Context,
 ) {
+    companion object {
+        const val REALTIME_LOG = ":realtime"
+    }
+
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val logsDir = File(context.cacheDir, "logs")
-    var logLevel: LogLevel = LogLevel.NONE
+    var logLevel: LogLevel by mutableStateOf(LogLevel.NONE)
+        private set
 
     val fileLogEntries = mutableStateListOf<LogEntry>()
     val realTimeLogEntries = mutableStateListOf<LogEntry>()
 
     private var loggingJob: Job? = null
     private val currentPid = Process.myPid()
+
+    fun updateLogLevel(value: LogLevel) {
+        if (logLevel == value) return
+        logLevel = value
+        if (value == LogLevel.NONE) {
+            stopLogging()
+            realTimeLogEntries.clear()
+        } else {
+            refreshLogs()
+        }
+    }
 
     fun startLogging() {
         if (loggingJob?.isActive == true) return
@@ -97,6 +116,11 @@ class LoggerRepository @Inject constructor(
 
 
     fun refreshLogs() {
+        if (logLevel == LogLevel.NONE) {
+            stopLogging()
+            realTimeLogEntries.clear()
+            return
+        }
         stopLogging()
         realTimeLogEntries.clear()
         startLogging()

@@ -50,6 +50,7 @@ fun SettingsScreen(
     updatePhase: String,
     checkUpdate: () -> Unit,
     importData: (Uri, Boolean) -> OneTimeWorkRequest,
+    onSetLogLevel: (String) -> Unit,
     onClickLogcat: () -> Unit,
     onClickChangeSource: () -> Unit,
     onClickExportUserData: () -> Unit,
@@ -124,6 +125,7 @@ fun SettingsScreen(
                 ) {
                     AppSettingsList(
                         settingState = settingState,
+                        onSetLogLevel = onSetLogLevel,
                         onClickLogcat = onClickLogcat,
                     )
                 }

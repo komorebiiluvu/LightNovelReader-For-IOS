@@ -64,6 +64,7 @@ fun NavGraphBuilder.settingsDestination() {
             settingState = settingsViewModel.settingState,
             checkUpdate = updatesAvailableDialogViewModel::checkUpdate,
             importData = settingsViewModel::importFromFile,
+            onSetLogLevel = settingsViewModel::setLogLevel,
             onClickDebugMode = navController::navigateToSettingsDebugDestination,
             onClickLicenses = navController::navigateToSettingsLicensesDestination,
             onClickChangeSource = navController::navigateToSettingsSourceChangeDestination,

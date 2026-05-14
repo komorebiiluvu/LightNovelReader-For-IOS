@@ -228,7 +228,7 @@
     <string name="settings_app_logs">App Logs</string>
     <string name="settings_app_logs_desc">View and share application logs for debug purpose</string>
     <string name="settings_app_log_level">Log Level</string>
-    <string name="settings_app_log_level_desc">Set log filtering level (requires app restart)</string>
+    <string name="settings_app_log_level_desc">Set log filtering level</string>
     <string name="settings_auto_proxy">Auto Proxy</string>
     <string name="settings_auto_proxy_desc">Automatically fetch proxy IPs from the internet, <b>but this may allow the books you browse to be intercepted</b></string>
     <string name="about_settings">About</string>
@@ -340,6 +340,7 @@
     <string name="select_chapter">Select Chapter</string>
     <string name="logs_title">Logs</string>
     <string name="log_source">Log Source</string>
+    <string name="log_realtime">Realtime</string>
     <string name="log_clear">Clear Temporary Logs</string>
     <string name="log_clear_desc">These logs will also be removed when clearing app cache</string>
     <string name="auto_scroll">Auto-scroll</string>
@@ -347,6 +348,8 @@
     <string name="log_shared">Shared Logs</string>
     <string name="log_crash">App Crash</string>
     <string name="log_empty_list">Empty log list</string>
+    <string name="log_closed_title">Logging disabled</string>
+    <string name="log_closed_desc">Enable app logs in Settings to view realtime logs.</string>
     <string name="detail_info_title">Title</string>
     <string name="detail_info_id">ID</string>
     <string name="detail_info_author">Author</string>

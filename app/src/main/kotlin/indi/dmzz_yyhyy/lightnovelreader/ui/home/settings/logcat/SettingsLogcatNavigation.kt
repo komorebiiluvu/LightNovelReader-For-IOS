@@ -19,6 +19,7 @@ fun NavGraphBuilder.settingsLogcatDestination() {
         val navController = LocalNavController.current
         val viewModel = hiltViewModel<LogcatViewModel>()
         LifecycleEventEffect(Lifecycle.Event.ON_START) {
+            viewModel.syncState()
             if (!viewModel.uiState.isFileMode) viewModel.startLogging()
         }
         val logEntries by remember { derivedStateOf { viewModel.displayedLogEntries } }
@@ -40,4 +41,3 @@ fun NavController.navigateToSettingsLogcatDestination() {
     if (!this.isResumed()) return
     navigate(Route.Main.Settings.Logcat)
 }
-

@@ -3,8 +3,8 @@ package indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.sourcechange
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.github.michaelbull.result.andThen
 import com.github.michaelbull.result.runCatching
@@ -19,6 +19,8 @@ import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceProvider
 import io.nightfish.lightnovelreader.api.userdata.UserDataPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.system.exitProcess
@@ -37,6 +39,8 @@ class SourceChangeViewModel @Inject constructor(
         currentSourceId = webBookDataSourceProvider.default.id
         webDataSourceItems = webBookDataSourceManager.webDataSourceItems
     }
+    private val _snackbarFlow = MutableSharedFlow<String>()
+    val snackbarFlow = _snackbarFlow.asSharedFlow()
     val uiState: SourceChangeUiState = _uiState
     fun changeWebSource(newWebDataSourceId: Int) {
         if (newWebDataSourceId == _uiState.currentSourceId) return
@@ -62,16 +66,11 @@ class SourceChangeViewModel @Inject constructor(
                     }
 
                 if (result.isErr) {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        Toast.makeText(
-                            appContext,
-                            "Failed to change data source. Please check the log for more information",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-
                     Log.e("SourceChangeViewModel", "Failed to change data source.")
                     result.unwrapError().printStackTrace()
+                    viewModelScope.launch(Dispatchers.Main) {
+                        _snackbarFlow.emit("Failed to change data source. Please check the log for more information")
+                    }
 
                     return@launch
                 }
