@@ -47,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -244,9 +245,9 @@ fun ExplorePage(
     refresh: () -> Unit,
     pageKey: Int
 ) {
-    var isRefreshing by remember { mutableStateOf(false) }
-    val listState = remember(pageKey) { LazyListState() }
-    var initialScrollApplied by remember(pageKey) { mutableStateOf(false) }
+    var isRefreshing by rememberSaveable(pageKey) { mutableStateOf(false) }
+    val listState = rememberSaveable(pageKey, saver = LazyListState.Saver) { LazyListState() }
+    var initialScrollApplied by rememberSaveable(pageKey) { mutableStateOf(false) }
     val titleHeight = with(LocalDensity.current) {
         (16.sp * 2.2f).toDp()
     }
