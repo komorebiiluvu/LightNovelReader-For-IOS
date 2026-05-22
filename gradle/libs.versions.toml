@@ -15,6 +15,7 @@ matomoSdkAndroid = "4.4"
 okhttp = "5.3.2"
 profileinstaller = "1.4.1"
 re2j = "1.8"
+reorderable = "3.1.0"
 runtime = "1.10.6"
 vico = "3.0.3"
 hilt = "2.59.2"
@@ -68,6 +69,7 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp3-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 symbol-processing-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
