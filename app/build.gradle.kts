@@ -209,8 +209,8 @@ dependencies {
     implementation(libs.matomo.sdk.android)
     // Reorderable
     implementation(libs.reorderable)
-// Source: https://mvnrepository.com/artifact/com.github.promeg/tinypinyin
-    implementation("com.github.promeg:tinypinyin:2.0.3")}
+    // TinyPinyin
+    implementation(libs.tinypinyin)}
 
 configurations.implementation {
     exclude(group = "com.intellij", module = "annotations")

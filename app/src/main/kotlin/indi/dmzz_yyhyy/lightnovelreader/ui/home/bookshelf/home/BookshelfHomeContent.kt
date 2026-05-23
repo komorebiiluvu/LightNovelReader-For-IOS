@@ -229,8 +229,7 @@ internal fun BookshelfHomeContent(
                 }
                 if (uiState.updatedExpanded) {
                     items(updatedIds, key = { "updated_$it" }, contentType = { "book_card" }) { id ->
-                        val infoFlow = remember(id) { dataSources.getBookInfoFlow(id) }
-                        val info by infoFlow.collectAsStateWithLifecycle()
+                        val info = bookInfoMap[id] ?: BookInformation.empty(id)
                         val volumesFlow = remember(id) { dataSources.getBookVolumesFlow(id) }
                         val volumes by volumesFlow.collectAsStateWithLifecycle()
                         val lastChapterTitle by remember(volumes) {
@@ -269,8 +268,7 @@ internal fun BookshelfHomeContent(
                 }
                 if (uiState.pinnedExpanded) {
                     items(pinnedIds, key = { "pinned_$it" }, contentType = { "book_card" }) { id ->
-                        val infoFlow = remember(id) { dataSources.getBookInfoFlow(id) }
-                        val info by infoFlow.collectAsStateWithLifecycle()
+                        val info = bookInfoMap[id] ?: BookInformation.empty(id)
                         BookshelfBookCard(
                             id = id,
                             info = info,
@@ -298,8 +296,7 @@ internal fun BookshelfHomeContent(
                 }
                 if (uiState.allExpanded) {
                     items(visibleAllIds, key = { "book_$it" }, contentType = { "book_card" }) { id ->
-                        val infoFlow = remember(id) { dataSources.getBookInfoFlow(id) }
-                        val info by infoFlow.collectAsStateWithLifecycle()
+                        val info = bookInfoMap[id] ?: BookInformation.empty(id)
                         BookshelfBookCard(
                             id = id,
                             info = info,
@@ -438,10 +435,11 @@ private fun sortBookIds(
     bookMetadataMap: Map<String, BookshelfBookMetadata?>
 ): List<String> {
     val stableIndexMap = allBookIds.withIndex().associate { it.value to it.index }
+    val sourceIdSet = sourceIds.toHashSet()
     val locale = Locale.getDefault()
     val collator = Collator.getInstance(locale)
     val sortedIds = when (sortType) {
-        BookshelfSortType.Default -> allBookIds.filter(sourceIds::contains)
+        BookshelfSortType.Default -> allBookIds.filter(sourceIdSet::contains)
         BookshelfSortType.Latest -> sourceIds.sortedWith(
             compareByDescending<String> {
                 bookMetadataMap[it]?.lastUpdate ?: LocalDateTime.MIN

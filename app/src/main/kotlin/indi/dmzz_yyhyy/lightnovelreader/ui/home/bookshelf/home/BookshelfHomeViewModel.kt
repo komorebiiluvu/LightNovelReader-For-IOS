@@ -25,6 +25,7 @@ import io.nightfish.lightnovelreader.api.userdata.UserDataPath
 import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UserDataRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -47,6 +48,7 @@ class BookshelfHomeViewModel @Inject constructor(
     private val bookVolumesStateFlows = mutableMapOf<String, StateFlow<BookVolumes>>()
     private val bookMetadataStateFlows = mutableMapOf<String, StateFlow<BookshelfBookMetadata?>>()
     private val bookshelfStateMap = mutableMapOf<Int, MutableBookshelf>()
+    private val bookLastChapterJobs = mutableMapOf<String, Job>()
 
     fun load() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -112,8 +114,16 @@ class BookshelfHomeViewModel @Inject constructor(
                         this@apply.pinnedBookIds = oldMutableBookshelf.pinnedBookIds
                         this@apply.updatedBookIds = oldMutableBookshelf.updatedBookIds
 
+                        val updatedBookIdSet = oldMutableBookshelf.updatedBookIds.toHashSet()
+                        bookLastChapterJobs.keys
+                            .filterNot(updatedBookIdSet::contains)
+                            .forEach { bookId ->
+                                bookLastChapterJobs.remove(bookId)?.cancel()
+                                _uiState.bookLastChapterTitleMap.remove(bookId)
+                            }
                         oldMutableBookshelf.updatedBookIds.forEach { bookId ->
-                            viewModelScope.launch(Dispatchers.IO) {
+                            if (bookLastChapterJobs.containsKey(bookId)) return@forEach
+                            bookLastChapterJobs[bookId] = viewModelScope.launch(Dispatchers.IO) {
                                 bookRepository.getBookVolumesFlow(bookId).collect {
                                     if (it.volumes.isNotEmpty()) {
                                         viewModelScope.launch(Dispatchers.Main) {

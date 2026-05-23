@@ -13,7 +13,16 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { setUrl("https://maven.aliyun.com/repository/public") }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    setUrl("https://maven.aliyun.com/repository/public")
+                }
+            }
+            filter {
+                includeGroup("com.github.promeg")
+            }
+        }
         maven { setUrl("https://jitpack.io") }
     }
 }
