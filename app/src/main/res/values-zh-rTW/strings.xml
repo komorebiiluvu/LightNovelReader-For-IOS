@@ -33,7 +33,7 @@
     <string name="not_applicable">不適用</string>
     <string name="install_update">安裝更新</string>
     <string name="plugin_install_alias_label">作為外掛安裝</string>
-    <string name="unspecified">Unspecified</string>
+    <string name="unspecified">未指定</string>
     <string name="ignore">忽略</string>
     <string name="ignore_version">忽略此版本</string>
     <string name="switch_and_restart">切換並重新啟動</string>
