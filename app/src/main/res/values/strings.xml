@@ -256,6 +256,7 @@
     <string name="book_manager_clear_orphaned_title">Clear orphaned data</string>
     <string name="book_manager_clear_orphaned_content">Remove chapter data that is no longer linked to any local book?</string>
     <string name="book_manager_group_index_only">Books without cached content (%1$d)</string>
+    <string name="book_manager_cleared_items">Cleared %1$d items</string>
     <string name="storage_manager_title">Storage Manager</string>
     <string name="storage_manager_empty_description">There is no local cache available to analyze.</string>
     <string name="storage_manager_used">used</string>

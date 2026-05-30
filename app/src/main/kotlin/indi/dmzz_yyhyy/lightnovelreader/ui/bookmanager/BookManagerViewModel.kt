@@ -20,6 +20,8 @@ import io.nightfish.lightnovelreader.api.book.BookInformation
 import io.nightfish.lightnovelreader.api.book.MutableBookInformation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -35,6 +37,8 @@ class BookManagerViewModel @Inject constructor(
     val downloadItemIdList get() = downloadProgressRepository.downloadItemIdList
     var bookInformationMap: Map<String, BookInformation> by mutableStateOf(emptyMap())
         private set
+    private val _clearedItemsFlow = MutableSharedFlow<Int>()
+    val clearedItemsFlow = _clearedItemsFlow.asSharedFlow()
     val localBookManagerUiState = MutableLocalBookManagerUiState(
         load = ::loadLocalBooks,
         setSort = ::setLocalBookSort,
@@ -43,9 +47,9 @@ class BookManagerViewModel @Inject constructor(
         exitSelection = ::exitLocalBookSelection,
         toggleSelect = ::toggleLocalBookSelect,
         selectAll = ::selectAllLocalBooks,
-        deleteSelected = {},
-        clearOrphanedData = {},
-        clearBookData = { _, _ -> },
+        deleteSelected = ::deleteSelected,
+        clearOrphanedData = ::clearOrphanedData,
+        clearBookData = ::clearBookData,
         openStorageOverview = {},
         openBookDetailScreen = {}
     )
@@ -128,6 +132,27 @@ class BookManagerViewModel @Inject constructor(
         localBookManagerUiState.selectedIds = localBookManagerUiState.bookList.map { it.id }.toSet()
     }
 
+    fun deleteSelected() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = deleteSelectedLocalBooks()
+            if (count > 0) _clearedItemsFlow.emit(count)
+        }
+    }
+
+    fun clearOrphanedData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = clearOrphanedDataItems()
+            if (count > 0) _clearedItemsFlow.emit(count)
+        }
+    }
+
+    fun clearBookData(bookId: String, targets: List<LocalBookClearTarget>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = clearBookDataItems(bookId, targets)
+            if (count > 0) _clearedItemsFlow.emit(count)
+        }
+    }
+
     suspend fun deleteSelectedLocalBooks(): Int {
         val ids = localBookManagerUiState.selectedIds.toList()
         if (ids.isEmpty()) return 0
@@ -152,7 +177,7 @@ class BookManagerViewModel @Inject constructor(
         return ids.size
     }
 
-    suspend fun clearOrphanedData(): Int {
+    suspend fun clearOrphanedDataItems(): Int {
         val linkedChapterIds = database.bookVolumesDao()
             .getAllVolumeEntities()
             .flatMap { it.chapterIds }
@@ -177,6 +202,50 @@ class BookManagerViewModel @Inject constructor(
         storageUsageRepository.invalidateSnapshot()
         refreshLocalBooks()
         return orphanChapterInfoIds.size + orphanChapterContentIds.size
+    }
+
+    suspend fun clearBookDataItems(bookId: String, targets: List<LocalBookClearTarget>): Int {
+        if (targets.isEmpty()) return 0
+
+        val volumeEntities = database.bookVolumesDao().getVolumeEntitiesByBookId(bookId)
+        val chapterIds = volumeEntities
+            .flatMap { it.chapterIds }
+            .distinct()
+        val targetSet = targets.toSet()
+        val hasReadingRecord = database.userReadingDataDao().getEntityWithoutFlow(bookId) != null
+        val chapterContentIds = if (LocalBookClearTarget.ChapterContent in targetSet && chapterIds.isNotEmpty()) {
+            chapterIds.filter { database.chapterContentDao().getId(it) != null }
+        } else {
+            emptyList()
+        }
+
+        database.runInTransaction {
+            if (LocalBookClearTarget.VolumeAndChapterIndex in targetSet) {
+                if (chapterIds.isNotEmpty()) {
+                    database.bookVolumesDao().deleteChapterInformationByIds(chapterIds)
+                }
+                database.bookVolumesDao().deleteByBookIds(listOf(bookId))
+            }
+            if (chapterContentIds.isNotEmpty()) {
+                database.chapterContentDao().deleteByIds(chapterContentIds)
+            }
+            if (LocalBookClearTarget.ReadingRecord in targetSet && hasReadingRecord) {
+                database.userReadingDataDao().deleteByIds(listOf(bookId))
+            }
+        }
+
+        storageUsageRepository.invalidateSnapshot()
+        refreshLocalBooks()
+
+        var clearedCount = 0
+        if (LocalBookClearTarget.VolumeAndChapterIndex in targetSet) {
+            clearedCount += volumeEntities.size + chapterIds.size
+        }
+        clearedCount += chapterContentIds.size
+        if (LocalBookClearTarget.ReadingRecord in targetSet && hasReadingRecord) {
+            clearedCount += 1
+        }
+        return clearedCount
     }
 
     private suspend fun refreshLocalBooks() {

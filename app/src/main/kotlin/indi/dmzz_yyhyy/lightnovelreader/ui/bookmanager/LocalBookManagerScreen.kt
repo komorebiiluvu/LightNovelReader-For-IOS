@@ -106,9 +106,7 @@ fun LocalBookManagerContent(
         }
     }
     BackHandler(enabled = shownInfoItem != null) {
-        if (confirmClear) {
-            confirmClear = false
-        } else if (clearItem != null) {
+        if (clearItem != null) {
             clearItem = null
             clearTargets = emptyList()
         } else {
@@ -203,6 +201,7 @@ fun LocalBookManagerContent(
                     TextButton(
                         onClick = {
                             uiState.clearBookData(item.id, clearTargets)
+                            infoItem = null
                             clearItem = null
                             clearTargets = emptyList()
                             confirmClear = false
@@ -272,7 +271,7 @@ fun LocalBookManagerContent(
                     }
                 }
                 item {
-                    Modifier.height(12.dp)
+                    Spacer(Modifier.height(12.dp))
                 }
             }
         }

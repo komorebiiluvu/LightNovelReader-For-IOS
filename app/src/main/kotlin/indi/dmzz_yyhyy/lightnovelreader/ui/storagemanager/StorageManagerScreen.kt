@@ -46,7 +46,7 @@ fun StorageManagerScreen(
                     IconButton(uiState.load) {
                         Icon(
                             painter = painterResource(id = R.drawable.refresh_24px),
-                            contentDescription = "back"
+                            contentDescription = "refresh"
                         )
                     }
                 },

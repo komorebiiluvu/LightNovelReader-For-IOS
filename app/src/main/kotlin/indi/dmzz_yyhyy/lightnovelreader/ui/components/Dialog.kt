@@ -78,7 +78,7 @@ fun BaseDialog(
     onConfirmation: () -> Unit,
     dismissText: String,
     confirmationText: String,
-    confirmationEnabled: Boolean = false,
+    confirmationEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
     BaseDialog(

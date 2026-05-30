@@ -1,53 +1,38 @@
 package indi.dmzz_yyhyy.lightnovelreader.ui.bookmanager
 
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import io.nightfish.lightnovelreader.api.ui.LocalNavController
-import io.nightfish.lightnovelreader.api.Route
+import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.utils.LocalSnackbarHost
 import indi.dmzz_yyhyy.lightnovelreader.utils.isResumed
 import indi.dmzz_yyhyy.lightnovelreader.utils.popBackStackIfResumed
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import io.nightfish.lightnovelreader.api.Route
+import io.nightfish.lightnovelreader.api.ui.LocalNavController
 
 fun NavGraphBuilder.bookManager() {
     composable<Route.BookManager> {
         val navController = LocalNavController.current
         val snackbarHostState = LocalSnackbarHost.current
-        val coroutineScope = rememberCoroutineScope()
         val viewModel = hiltViewModel<BookManagerViewModel>()
         val uiState = viewModel.localBookManagerUiState
-        LaunchedEffect(navController, snackbarHostState, coroutineScope) {
-            uiState.deleteSelected = {
-                coroutineScope.launch {
-                    val count = withContext(Dispatchers.IO) {
-                        viewModel.deleteSelectedLocalBooks()
-                    }
-                    if (count > 0) {
-                        snackbarHostState.showSnackbar("Cleared $count items", withDismissAction = true)
-                    }
-                }
+        val clearedItemsText = stringResource(R.string.book_manager_cleared_items)
+        LaunchedEffect(viewModel.clearedItemsFlow) {
+            viewModel.clearedItemsFlow.collect { count ->
+                snackbarHostState.showSnackbar(
+                    clearedItemsText.format(count),
+                    withDismissAction = true
+                )
             }
-            uiState.clearOrphanedData = {
-                coroutineScope.launch {
-                    val count = withContext(Dispatchers.IO) {
-                        viewModel.clearOrphanedData()
-                    }
-                    snackbarHostState.showSnackbar("Cleared $count items", withDismissAction = true)
-                }
-            }
-            uiState.openStorageOverview = {
-                navController.navigate(Route.StorageManager)
-            }
-            uiState.openBookDetailScreen = { id ->
-                navController.navigate(Route.Book.Detail(id))
-            }
-            uiState.clearBookData = { _, _ -> }
+        }
+        uiState.openStorageOverview = {
+            navController.navigate(Route.StorageManager)
+        }
+        uiState.openBookDetailScreen = { id ->
+            navController.navigate(Route.Book.Detail(id))
         }
         BookManagerScreen(
             onClickBack = navController::popBackStackIfResumed,

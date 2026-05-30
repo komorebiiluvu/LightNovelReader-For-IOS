@@ -152,7 +152,7 @@ fun StorageOverviewContent(
                                     fontWeight = FontWeight.W600
                                 )
                                 Text(
-                                    text = progress.toString().format("%.1f%%", progress * 100f),
+                                    text = "%.1f%%".format(progress * 100f),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.secondary
                                 )
