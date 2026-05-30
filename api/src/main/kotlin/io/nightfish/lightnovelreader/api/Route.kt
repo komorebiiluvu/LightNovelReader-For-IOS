@@ -284,9 +284,13 @@ object Route {
     data class PluginInstallerDialog(
         val source: String
     )
-    /** 下载管理器路由 */
+    /** 书本管理器路由 */
     @Serializable
-    object DownloadManager
+    object BookManager
+
+    /** 存储空间管理器路由 */
+    @Serializable
+    object StorageManager
 
     /** 插件商店安装底栏
      *

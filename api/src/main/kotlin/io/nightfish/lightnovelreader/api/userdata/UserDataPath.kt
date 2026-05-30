@@ -158,6 +158,8 @@ sealed class UserDataPath(
             data object LogLevel : UserDataPath("log_level", Data)
             /** 是否使用代理 @since Api 2 */
             data object IsUseProxy : UserDataPath("is_use_proxy", Data)
+            /** 存储统计快照缓存 @since Api 4 */
+            data object StorageUsageSnapshot : UserDataPath("storage_usage_snapshot", Data)
         }
     }
     /** 已完成下载的书籍列表路径 @since Api 2 */

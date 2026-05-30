@@ -93,7 +93,6 @@
     <string name="settings_data_source_pending_title">切换到 %s</string>
     <string name="settings_data_source_pending_desc">        应用将清除缓存并重启。当前数据将在下次切换回「%s」时可用。
     </string>
-    <string name="settings_data_source_applying">进行中……</string>
     <string name="plugin_invalid_title">无效插件</string>
     <string name="plugin_invalid_desc">无法获取插件信息，插件可能无效或损坏</string>
     <string name="plugin_disabled">不可用</string>
@@ -271,7 +270,6 @@
     <string name="detail_introduction">介绍</string>
     <string name="detail_contents">目录</string>
     <string name="detail_title">详情</string>
-    <string name="book_management_title">书本管理</string>
     <string name="bookshelf_new_title">新建书架</string>
     <string name="bookshelf_edit_title">编辑书架</string>
     <string name="changelog">新版变化</string>
@@ -503,8 +501,6 @@
     <string name="plugin_signature_sha1_label">SHA-1</string>
     <string name="plugin_app_loadable_tag">可加载的插件</string>
     <string name="plugin_enable_label">启用插件</string>
-    <string name="plugin_detail_tab_overview">概览</string>
-    <string name="plugin_detail_tab_settings">设置</string>
     <string name="plugin_detail_summary_title">关于此插件</string>
     <string name="plugin_detail_info_title">插件信息</string>
     <string name="plugin_detail_api_version">API 版本</string>

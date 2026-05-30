@@ -4,6 +4,7 @@ import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.update.APIParser
 import indi.dmzz_yyhyy.lightnovelreader.data.update.GithubParser
 import indi.dmzz_yyhyy.lightnovelreader.data.update.UpdateParser
+import indi.dmzz_yyhyy.lightnovelreader.ui.bookmanager.LocalBookSort
 
 @Suppress("PropertyName", "unused")
 sealed class MenuOptions {
@@ -180,5 +181,10 @@ sealed class MenuOptions {
         val Detailed = option("detailed", R.string.key_duration_style_detailed)
     }
 
+    data object LocalBookSortMenuOptions : MenuOptions(
+        Option(LocalBookSort.Size.name, R.string.key_local_book_sort_size),
+        Option(LocalBookSort.LastRead.name, R.string.key_local_book_sort_last_read),
+        Option(LocalBookSort.ChapterCount.name, R.string.key_local_book_sort_chapter_count)
+    )
 
 }
