@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -214,9 +215,11 @@ fun LocalBookManagerContent(
             )
         }
     }
-    Box {
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
             contentPadding = PaddingValues(
                 top = 4.dp,
                 bottom = when {
@@ -278,6 +281,7 @@ fun LocalBookManagerContent(
         AnimatedContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 14.dp),
             targetState = shownInfoItem,
             transitionSpec = {
@@ -334,6 +338,7 @@ fun LocalBookManagerContent(
         AnimatedVisibility(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
                 .padding(bottom = 14.dp),
             visible = uiState.isSelecting,
             enter = slideInVertically(
@@ -575,8 +580,7 @@ private fun LocalBookInfoCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 640.dp)
-            .navigationBarsPadding(),
+            .widthIn(max = 640.dp),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
