@@ -361,7 +361,6 @@
     <string name="no_records">沒有記錄</string>
     <string name="total_record">總記錄</string>
     <string name="reading_sessions">閱讀會話</string>
-    <string name="reading_sessions_unit"></string>
     <string name="reading_duration">閱讀時長</string>
     <string name="reading_duration_unit">時 %d 分</string>
     <string name="cached">已快取</string>

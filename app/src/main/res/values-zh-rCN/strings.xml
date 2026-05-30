@@ -361,7 +361,6 @@
     <string name="no_records">没有记录</string>
     <string name="total_record">总记录</string>
     <string name="reading_sessions">阅读会话</string>
-    <string name="reading_sessions_unit"></string>
     <string name="reading_duration">阅读时长</string>
     <string name="reading_duration_unit">时 %d 分</string>
     <string name="cached">已缓存</string>

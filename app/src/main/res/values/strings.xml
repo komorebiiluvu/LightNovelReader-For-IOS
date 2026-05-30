@@ -427,7 +427,6 @@
     <string name="no_records">No Records</string>
     <string name="total_record">Total Record</string>
     <string name="reading_sessions">Reading Sessions</string>
-    <string name="reading_sessions_unit"> </string>
     <string name="reading_duration">Reading Duration</string>
     <string name="reading_duration_unit">h %d min</string>
     <string name="cached">Cached</string>

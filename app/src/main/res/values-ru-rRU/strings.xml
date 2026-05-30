@@ -362,7 +362,6 @@
     <string name="no_records">Нет записей</string>
     <string name="total_record">Всего записей</string>
     <string name="reading_sessions">Сессии чтения</string>
-    <string name="reading_sessions_unit"></string>
     <string name="reading_duration">Длительность чтения</string>
     <string name="reading_duration_unit">ч %d мин</string>
     <string name="cached">В кэше</string>
