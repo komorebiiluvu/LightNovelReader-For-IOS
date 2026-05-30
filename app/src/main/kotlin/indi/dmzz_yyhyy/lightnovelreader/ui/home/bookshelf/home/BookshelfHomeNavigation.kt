@@ -25,56 +25,42 @@ import kotlinx.coroutines.launch
 
 @Suppress("UNUSED_PARAMETER")
 fun NavGraphBuilder.bookshelfHomeDestination(sharedTransitionScope: SharedTransitionScope) {
-    composable<Route.Main.Bookshelf.Home> { it ->
+    composable<Route.Main.Bookshelf.Home> {
         val navController = LocalNavController.current
         val parentEntry = remember(it) { navController.getBackStackEntry(Route.Main) }
         val bookshelfHomeViewModel = hiltViewModel<BookshelfHomeViewModel>(parentEntry)
         val bookshelfNewTitle = stringResource(R.string.bookshelf_new_title)
         val bookshelfEditTitle = stringResource(R.string.bookshelf_edit_title)
-        BookshelfHomeScreen(
-            init = bookshelfHomeViewModel::load,
-            uiState = bookshelfHomeViewModel.uiState,
-            actions = BookshelfHomeActions(
-                changePage = bookshelfHomeViewModel::changePage,
-                changeSortType = bookshelfHomeViewModel::changeSortType,
-                changeSortReversed = bookshelfHomeViewModel::changeSortReversed,
-                changeBookSelectState = bookshelfHomeViewModel::changeBookSelectState,
-                enableReorderMode = {
+        val uiState = remember(navController, bookshelfHomeViewModel, bookshelfNewTitle, bookshelfEditTitle) {
+            object : BookshelfHomeUiState by bookshelfHomeViewModel.uiState {
+                override val enableReorderMode: () -> Unit = {
                     navController.navigate(Route.Main.Bookshelf.ReorderBooks(bookshelfHomeViewModel.uiState.selectedBookshelfId))
-                },
-                disableReorderMode = bookshelfHomeViewModel::disableReorderMode,
-                moveBook = bookshelfHomeViewModel::moveBook,
-                enableBookshelfReorderMode = {
+                }
+                override val enableBookshelfReorderMode: () -> Unit = {
                     navController.navigate(Route.Main.Bookshelf.ReorderBookshelves)
-                },
-                disableBookshelfReorderMode = bookshelfHomeViewModel::disableBookshelfReorderMode,
-                moveBookshelf = bookshelfHomeViewModel::moveBookshelf,
-                onCreate = {
+                }
+                override val onCreate: () -> Unit = {
                     navController.navigateToBookshelfEditDestination(-1, bookshelfNewTitle)
-                },
-                onEdit = {
-                    navController.navigateToBookshelfEditDestination(it, bookshelfEditTitle)
-                },
-                onBookClick = navController::navigateToBookDetailDestination,
-                onEnableSelectMode = bookshelfHomeViewModel::enableSelectMode,
-                onDisableSelectMode = bookshelfHomeViewModel::disableSelectMode,
-                onSelectAll = bookshelfHomeViewModel::selectAllBooks,
-                onPin = bookshelfHomeViewModel::pinSelectedBooks,
-                onRemove = {
+                }
+                override val onEdit: (Int) -> Unit = { bookshelfId ->
+                    navController.navigateToBookshelfEditDestination(bookshelfId, bookshelfEditTitle)
+                }
+                override val onBookClick: (String) -> Unit = navController::navigateToBookDetailDestination
+                override val onRemove: () -> Unit = {
                     bookshelfHomeViewModel.removeSelectedBooks()
                     if (bookshelfHomeViewModel.uiState.selectedBookshelf.allBookIds.isEmpty()) {
                         bookshelfHomeViewModel.disableSelectMode()
                     }
-                },
-                onMarkSelectedBooks = {
+                }
+                override val onMarkSelectedBooks: () -> Unit = {
                     navController.navigateToAddBookToBookshelfDialog(bookshelfHomeViewModel.uiState.selectedBookIds)
                     bookshelfHomeViewModel.disableSelectMode()
-                },
-                saveAllBookshelfJsonData = bookshelfHomeViewModel::saveAllBookshelf,
-                saveBookshelfJsonData = bookshelfHomeViewModel::saveThisBookshelf,
-                importBookshelf = bookshelfHomeViewModel::importBookshelf,
-                clearToast = bookshelfHomeViewModel::clearToast
-            ),
+                }
+            }
+        }
+        BookshelfHomeScreen(
+            init = bookshelfHomeViewModel::load,
+            uiState = uiState,
             dataSources = BookshelfHomeDataSources(
                 getBookInfoFlow = bookshelfHomeViewModel::getBookInfoStateFlow,
                 getBookVolumesFlow = bookshelfHomeViewModel::getBookVolumesStateFlow,

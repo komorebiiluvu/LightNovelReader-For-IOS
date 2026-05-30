@@ -51,7 +51,6 @@ data class BookshelfHomeDataSources(
 fun BookshelfHomeScreen(
     init: () -> Unit,
     uiState: BookshelfHomeUiState,
-    actions: BookshelfHomeActions,
     dataSources: BookshelfHomeDataSources,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -62,13 +61,13 @@ fun BookshelfHomeScreen(
         if (uiState.selectMode) MaterialTheme.colorScheme.surfaceVariant
         else MaterialTheme.colorScheme.surface
     )
-    val saveAllBookshelfLauncher = launcher(actions.saveAllBookshelfJsonData)
-    val saveThisBookshelfLauncher = launcher(actions.saveBookshelfJsonData)
-    val importBookshelfLauncher = launcher(actions.importBookshelf)
+    val saveAllBookshelfLauncher = launcher(uiState.saveAllBookshelfJsonData)
+    val saveThisBookshelfLauncher = launcher(uiState.saveBookshelfJsonData)
+    val importBookshelfLauncher = launcher(uiState.importBookshelf)
     val listState = remember(uiState.selectedBookshelfId) { androidx.compose.foundation.lazy.LazyListState() }
 
     BackHandler(uiState.selectMode) {
-        actions.onDisableSelectMode()
+        uiState.onDisableSelectMode()
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
@@ -78,7 +77,7 @@ fun BookshelfHomeScreen(
     LaunchedEffect(uiState.toast) {
         if (uiState.toast.isEmpty()) return@LaunchedEffect
         Toast.makeText(context, uiState.toast, Toast.LENGTH_SHORT).show()
-        actions.clearToast()
+        uiState.clearToast()
     }
 
     val shareBookshelf: () -> Unit = remember(
@@ -130,7 +129,6 @@ fun BookshelfHomeScreen(
             scrollBehavior = scrollBehavior,
             backgroundColor = backgroundColor,
             uiState = uiState,
-            actions = actions,
             onShareBookshelf = shareBookshelf,
             onSaveThisBookshelf = {
                 createBookshelfDataFile(
@@ -148,7 +146,6 @@ fun BookshelfHomeScreen(
 
         BookshelfHomeContent(
             uiState = uiState,
-            actions = actions,
             dataSources = dataSources,
             listState = listState,
             scrollBehavior = scrollBehavior

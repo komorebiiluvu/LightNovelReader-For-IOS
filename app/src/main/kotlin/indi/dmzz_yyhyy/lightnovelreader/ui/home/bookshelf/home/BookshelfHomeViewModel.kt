@@ -40,7 +40,27 @@ class BookshelfHomeViewModel @Inject constructor(
     userDataRepository: UserDataRepository,
     private val workManager: WorkManager,
 ) : ViewModel() {
-    private val _uiState = MutableBookshelfHomeUiState()
+    private val _uiState = MutableBookshelfHomeUiState(
+        changePage = ::changePage,
+        changeSortType = ::changeSortType,
+        changeSortReversed = ::changeSortReversed,
+        changeBookSelectState = ::changeBookSelectState,
+        enableReorderMode = ::enableReorderMode,
+        disableReorderMode = ::disableReorderMode,
+        moveBook = ::moveBook,
+        enableBookshelfReorderMode = ::enableBookshelfReorderMode,
+        disableBookshelfReorderMode = ::disableBookshelfReorderMode,
+        moveBookshelf = ::moveBookshelf,
+        onEnableSelectMode = ::enableSelectMode,
+        onDisableSelectMode = ::disableSelectMode,
+        onSelectAll = ::selectAllBooks,
+        onPin = ::pinSelectedBooks,
+        onRemove = ::removeSelectedBooks,
+        saveAllBookshelfJsonData = ::saveAllBookshelf,
+        saveBookshelfJsonData = ::saveThisBookshelf,
+        importBookshelf = ::importBookshelf,
+        clearToast = ::clearToast,
+    )
     val uiState: BookshelfHomeUiState = _uiState
     private val bookshelfOrderUserData = userDataRepository.intListUserData(UserDataPath.BookshelfOrder.path)
 

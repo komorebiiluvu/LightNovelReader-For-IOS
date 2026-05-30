@@ -75,7 +75,6 @@ import java.util.Locale
 @Composable
 internal fun BookshelfHomeContent(
     uiState: BookshelfHomeUiState,
-    actions: BookshelfHomeActions,
     dataSources: BookshelfHomeDataSources,
     listState: LazyListState,
     scrollBehavior: TopAppBarScrollBehavior,
@@ -110,7 +109,7 @@ internal fun BookshelfHomeContent(
                         Tab(
                             selected = uiState.selectedBookshelfId == bookshelf.id,
                             onClick = {
-                                if (!uiState.selectMode) actions.changePage(bookshelf.id)
+                                if (!uiState.selectMode) uiState.changePage(bookshelf.id)
                             },
                             text = {
                                 Text(
@@ -169,9 +168,9 @@ internal fun BookshelfHomeContent(
         val selectedBookIdSet = uiState.selectedBookIds.toHashSet()
         val onLongPress: (String) -> Unit = { bookId ->
             if (!uiState.selectMode) {
-                actions.onEnableSelectMode()
+                uiState.onEnableSelectMode()
             }
-            actions.changeBookSelectState(bookId)
+            uiState.changeBookSelectState(bookId)
         }
         var initialScrollApplied by remember(uiState.selectedBookshelfId) { mutableStateOf(false) }
         var showEmptyPage by remember { mutableStateOf(allBookIds.isEmpty()) }
@@ -249,8 +248,8 @@ internal fun BookshelfHomeContent(
                             latestChapterTitle = lastChapterTitle ?: uiState.bookLastChapterTitleMap[id],
                             titleHeight = titleHeight,
                             shimmer = shimmerInstance,
-                            onBookClick = actions.onBookClick,
-                            onBookSelect = actions.changeBookSelectState,
+                            onBookClick = uiState.onBookClick,
+                            onBookSelect = uiState.changeBookSelectState,
                             onLongPress = onLongPress
                         )
                     }
@@ -277,8 +276,8 @@ internal fun BookshelfHomeContent(
                             latestChapterTitle = null,
                             titleHeight = titleHeight,
                             shimmer = shimmerInstance,
-                            onBookClick = actions.onBookClick,
-                            onBookSelect = actions.changeBookSelectState,
+                            onBookClick = uiState.onBookClick,
+                            onBookSelect = uiState.changeBookSelectState,
                             onLongPress = onLongPress
                         )
                     }
@@ -305,8 +304,8 @@ internal fun BookshelfHomeContent(
                             latestChapterTitle = null,
                             titleHeight = titleHeight,
                             shimmer = shimmerInstance,
-                            onBookClick = actions.onBookClick,
-                            onBookSelect = actions.changeBookSelectState,
+                            onBookClick = uiState.onBookClick,
+                            onBookSelect = uiState.changeBookSelectState,
                             onLongPress = onLongPress
                         )
                     }

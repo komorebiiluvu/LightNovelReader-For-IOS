@@ -47,7 +47,6 @@ fun BookshelfHomeTopBar(
     scrollBehavior: TopAppBarScrollBehavior,
     backgroundColor: Color,
     uiState: BookshelfHomeUiState,
-    actions: BookshelfHomeActions,
     onShareBookshelf: () -> Unit,
     onSaveThisBookshelf: () -> Unit,
     onSaveAllBookshelf: () -> Unit,
@@ -76,7 +75,7 @@ fun BookshelfHomeTopBar(
         navigationIcon = {
             AnimatedVisibility(visible = uiState.selectMode) {
                 IconButton(
-                    onClick = actions.onDisableSelectMode
+                    onClick = uiState.onDisableSelectMode
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.cancel_24px),
@@ -88,7 +87,7 @@ fun BookshelfHomeTopBar(
         actions = {
             when {
                 !uiState.selectMode -> {
-                    IconButton(onClick = actions.onCreate) {
+                    IconButton(onClick = uiState.onCreate) {
                         Icon(
                             painter = painterResource(R.drawable.library_add_24px),
                             contentDescription = "create"
@@ -130,7 +129,7 @@ fun BookshelfHomeTopBar(
                                         )
                                     },
                                     onClick = {
-                                        actions.changeSortType(BookshelfSortTypeOptions.getOptionWithValue(item.key).value)
+                                        uiState.changeSortType(BookshelfSortTypeOptions.getOptionWithValue(item.key).value)
                                     }
                                 )
                             }
@@ -152,7 +151,7 @@ fun BookshelfHomeTopBar(
                                 },
                                 onClick = {
                                     if (uiState.selectedBookshelf.sortType == BookshelfSortType.Default) return@DropdownMenuItem
-                                    actions.changeSortReversed(!uiState.selectedBookshelf.sortReversed)
+                                    uiState.changeSortReversed(!uiState.selectedBookshelf.sortReversed)
                                 }
                             )
                         }
@@ -193,7 +192,7 @@ fun BookshelfHomeTopBar(
                                 },
                                 onClick = {
                                     mainMenuExpanded = false
-                                    actions.onCreate()
+                                    uiState.onCreate()
                                 }
                             )
                             DropdownMenuItem(
@@ -205,7 +204,7 @@ fun BookshelfHomeTopBar(
                                 },
                                 onClick = {
                                     mainMenuExpanded = false
-                                    actions.onEdit(uiState.selectedBookshelfId)
+                                    uiState.onEdit(uiState.selectedBookshelfId)
                                 }
                             )
                             DropdownMenuItem(
@@ -227,7 +226,7 @@ fun BookshelfHomeTopBar(
                                 },
                                 onClick = {
                                     mainMenuExpanded = false
-                                    actions.enableReorderMode()
+                                    uiState.enableReorderMode()
                                 }
                             )
                             DropdownMenuItem(
@@ -257,7 +256,7 @@ fun BookshelfHomeTopBar(
                                 },
                                 onClick = {
                                     mainMenuExpanded = false
-                                    actions.enableBookshelfReorderMode()
+                                    uiState.enableBookshelfReorderMode()
                                 }
                             )
                             DropdownMenuItem(
@@ -333,25 +332,25 @@ fun BookshelfHomeTopBar(
                 }
 
                 else -> {
-                    IconButton(onClick = actions.onSelectAll) {
+                    IconButton(onClick = uiState.onSelectAll) {
                         Icon(
                             painter = painterResource(R.drawable.select_all_24px),
                             contentDescription = "select all"
                         )
                     }
-                    IconButton(onClick = actions.onPin) {
+                    IconButton(onClick = uiState.onPin) {
                         Icon(
                             painter = painterResource(R.drawable.keep_24px),
                             contentDescription = "pin"
                         )
                     }
-                    IconButton(onClick = actions.onRemove) {
+                    IconButton(onClick = uiState.onRemove) {
                         Icon(
                             painter = painterResource(R.drawable.bookmark_remove_24px),
                             contentDescription = "remove"
                         )
                     }
-                    IconButton(onClick = actions.onMarkSelectedBooks) {
+                    IconButton(onClick = uiState.onMarkSelectedBooks) {
                         Icon(
                             painter = painterResource(R.drawable.outline_bookmark_24px),
                             contentDescription = "bookmark"
