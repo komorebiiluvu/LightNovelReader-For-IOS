@@ -30,7 +30,7 @@ android {
         multiDexEnabled = true
         minSdk = 24
     }
-    compileSdk = 36
+    compileSdk = 37
 
     buildFeatures {
         buildConfig = false
@@ -74,8 +74,10 @@ afterEvaluate {
                 name = "reposilite"
                 url = URI("https://maven.nariko.org/release")
                 credentials {
-                    username = "nightfish"
-                    password = "NtF_@20090117"
+                    username = localProperties["maven.username"]?.toString()
+                        ?: System.getenv("REPO_USER") ?: ""
+                    password = localProperties["maven.password"]?.toString()
+                        ?: System.getenv("REPO_PASS") ?: ""
                 }
             }
         }
