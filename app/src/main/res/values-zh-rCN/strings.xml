@@ -21,6 +21,7 @@
     <string name="abort">中止</string>
     <string name="close">关闭</string>
     <string name="decline">拒绝</string>
+    <string name="options">更多</string>
     <string name="copied">内容已复制</string>
     <string name="select_all">全选</string>
     <string name="invert_selection">反选</string>
@@ -28,6 +29,7 @@
     <string name="undo">撤销</string>
     <string name="manual_download">手动下载</string>
     <string name="follow_system">跟随系统</string>
+    <string name="exit">退出</string>
     <string name="enabled">启用</string>
     <string name="disabled">关闭</string>
     <string name="not_applicable">不适用</string>
@@ -98,6 +100,8 @@
     <string name="plugin_invalid_desc">无法获取插件信息，插件可能无效或损坏</string>
     <string name="plugin_disabled">不可用</string>
     <string name="plugin_disabled_desc">调整设置需要启用插件</string>
+    <string name="confirm_exit">确认退出？</string>
+    <string name="hint_unsaved_changes_will_be_lost">如果现在退出，您未保存的更改将会丢失。</string>
     <!-- Snackbar Hints -->
     <string name="cache_book_started">开始缓存：%1$s</string>
     <string name="cache_book_running">此书本正在缓存中</string>
@@ -301,6 +305,15 @@
     <string name="bookshelf_name_placeholder">输入书架名称</string>
     <string name="bookshelf_settings">书架设置</string>
     <string name="bookshelf_create_title">创建书架</string>
+    <string name="bookshelf_sort_type">排序方式</string>
+    <string name="bookshelf_sort_default">默认</string>
+    <string name="bookshelf_sort_latest">最近更新</string>
+    <string name="bookshelf_sort_name">名称</string>
+    <string name="bookshelf_sort_word_count">字数</string>
+    <string name="bookshelf_sort_reverse">反向</string>
+    <string name="bookshelf_adjust_order">调整排序</string>
+    <string name="bookshelf_adjust_bookshelf_order">调整书架排序</string>
+    <string name="bookshelf_adjust_order_locked">被当前排序模式锁定</string>
     <string name="bookshelf_book_count">共 %d 本</string>
     <string name="share_bookshelf">分享书架</string>
     <string name="import_and_export">导入和导出……</string>
