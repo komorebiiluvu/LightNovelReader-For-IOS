@@ -325,4 +325,3 @@ fun BookStatusIcon(isComplete: Boolean) {
         tint = colorScheme.outline
     )
 }
-

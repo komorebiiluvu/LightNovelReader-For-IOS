@@ -3,7 +3,8 @@ package indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.home
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -27,7 +28,7 @@ fun NavGraphBuilder.readingHomeDestination(sharedTransitionScope: SharedTransiti
 
         val chapterSheetUi = viewModel.chapterSheetUi
         val volumesMap = viewModel.bookVolumesMap
-        val chapterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val chapterSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
 
         ReadingScreen(
             updateReadingBooks = viewModel::updateReadingBooks,

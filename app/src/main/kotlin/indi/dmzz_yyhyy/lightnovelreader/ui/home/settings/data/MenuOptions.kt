@@ -4,6 +4,7 @@ import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.update.APIParser
 import indi.dmzz_yyhyy.lightnovelreader.data.update.GithubParser
 import indi.dmzz_yyhyy.lightnovelreader.data.update.UpdateParser
+import io.nightfish.lightnovelreader.api.bookshelf.BookshelfSortType
 import indi.dmzz_yyhyy.lightnovelreader.ui.bookmanager.LocalBookSort
 
 @Suppress("PropertyName", "unused")
@@ -187,4 +188,10 @@ sealed class MenuOptions {
         Option(LocalBookSort.ChapterCount.name, R.string.key_local_book_sort_chapter_count)
     )
 
+    data object BookshelfSortTypeOptions: MenuOptionsWithValues<BookshelfSortType>(
+        OptionWithValue(BookshelfSortType.Default.key, R.string.bookshelf_sort_default, BookshelfSortType.Default),
+        OptionWithValue(BookshelfSortType.Latest.key, R.string.bookshelf_sort_latest, BookshelfSortType.Latest),
+        OptionWithValue(BookshelfSortType.Name.key, R.string.bookshelf_sort_name, BookshelfSortType.Name),
+        OptionWithValue(BookshelfSortType.WordCount.key, R.string.bookshelf_sort_word_count, BookshelfSortType.WordCount)
+    )
 }

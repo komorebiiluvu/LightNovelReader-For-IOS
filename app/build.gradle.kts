@@ -16,13 +16,13 @@ plugins {
 
 android {
     namespace = "indi.dmzz_yyhyy.lightnovelreader"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         multiDexEnabled = true
         applicationId = "indi.dmzz_yyhyy.lightnovelreader"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         // 版本号为x.y.z则versionCode为x*1000000+y*10000+z*1000+debug版本号(开发需要时迭代, 三位数)
         versionCode = 1_02_01_005
         versionName = "1.2.1"
@@ -207,7 +207,10 @@ dependencies {
     implementation(libs.re2j)
     // Matomo
     implementation(libs.matomo.sdk.android)
-}
+    // Reorderable
+    implementation(libs.reorderable)
+    // TinyPinyin
+    implementation(libs.tinypinyin)}
 
 configurations.implementation {
     exclude(group = "com.intellij", module = "annotations")

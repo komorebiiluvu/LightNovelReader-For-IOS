@@ -41,9 +41,9 @@ publishing {
             url = URI("https://maven.nariko.org/release")
             credentials {
                 username = localProperties["maven.username"]?.toString()
-                    ?: System.getenv("MAVEN_USERNAME") ?: ""
+                    ?: System.getenv("REPO_USER") ?: ""
                 password = localProperties["maven.password"]?.toString()
-                    ?: System.getenv("MAVEN_PASSWORD") ?: ""
+                    ?: System.getenv("REPO_PASS") ?: ""
             }
         }
     }
