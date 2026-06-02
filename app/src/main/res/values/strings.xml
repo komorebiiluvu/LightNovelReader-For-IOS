@@ -22,6 +22,7 @@
     <string name="abort">Abort</string>
     <string name="close">Close</string>
     <string name="decline">Decline</string>
+    <string name="options">More</string>
     <string name="copied">Content copied</string>
     <string name="select_all">Select All</string>
     <string name="invert_selection">Invert Selection</string>
@@ -29,6 +30,7 @@
     <string name="undo">Undo</string>
     <string name="manual_download">Manual</string>
     <string name="follow_system">Follow System</string>
+    <string name="exit">Exit</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
     <string name="not_applicable">Not applicable</string>
@@ -101,6 +103,8 @@
     <string name="plugin_invalid_desc">Unable to get plugin info; the plugin may be invalid or corrupted.</string>
     <string name="plugin_disabled">Unavailable</string>
     <string name="plugin_disabled_desc">Enabling the plugin is required to adjust settings.</string>
+    <string name="confirm_exit">Confirm Exit?</string>
+    <string name="hint_unsaved_changes_will_be_lost">If you exit now, your unsaved changes will be lost.</string>
 
     <!-- Snackbar Hints -->
     <string name="cache_book_started">Caching started: %1$s</string>
@@ -316,6 +320,15 @@
     <string name="bookshelf_name_placeholder">Enter the bookshelf name.</string>
     <string name="bookshelf_settings">Bookshelf Settings</string>
     <string name="bookshelf_create_title">Create Bookshelf</string>
+    <string name="bookshelf_sort_type">Sort Type</string>
+    <string name="bookshelf_sort_default">Default</string>
+    <string name="bookshelf_sort_latest">Recently Updated</string>
+    <string name="bookshelf_sort_name">Name</string>
+    <string name="bookshelf_sort_word_count">Word Count</string>
+    <string name="bookshelf_sort_reverse">Reverse</string>
+    <string name="bookshelf_adjust_order">Adjust Order</string>
+    <string name="bookshelf_adjust_bookshelf_order">Adjust Bookshelf Order</string>
+    <string name="bookshelf_adjust_order_locked">Locked by current sort</string>
     <string name="bookshelf_book_count">Total: %d Books</string>
     <string name="share_bookshelf">Share Bookshelf</string>
     <string name="import_and_export">Import &amp; Export…</string>
