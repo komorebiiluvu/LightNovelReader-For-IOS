@@ -20,6 +20,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.BookshelfDao
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.ChapterContentDao
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.DailyCountDao
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.FormattingRuleDao
+import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.StorageStatsDao
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.UserDataDao
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.UserReadingDataDao
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.entity.BookInformationEntity
@@ -65,6 +66,7 @@ abstract class LightNovelReaderDatabase : RoomDatabase() {
     abstract fun bookRecordDao(): BookRecordDao
     abstract fun dailyCountDao(): DailyCountDao
     abstract fun formattingRuleDao(): FormattingRuleDao
+    abstract fun storageStatsDao(): StorageStatsDao
 
     companion object {
         @Volatile
