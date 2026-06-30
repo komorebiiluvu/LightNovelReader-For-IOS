@@ -1,7 +1,6 @@
 package indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats
 
 import android.util.Log
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,35 +8,27 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.nightfish.lightnovelreader.api.book.BookInformation
 import indi.dmzz_yyhyy.lightnovelreader.data.book.BookRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.statistics.Count
+import indi.dmzz_yyhyy.lightnovelreader.data.statistics.StatsMonthSessions
 import indi.dmzz_yyhyy.lightnovelreader.data.statistics.StatsRepository
 import indi.dmzz_yyhyy.lightnovelreader.utils.DurationFormat
 import indi.dmzz_yyhyy.lightnovelreader.utils.quickSelect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import kotlin.collections.set
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-data class DailyDateDetails(
-    val formattedTotalTime: String,
-    val timeDetails: List<Pair<BookInformation, Int>>
-)
-
-data class TimeBarItem(
-    val title: String,
-    val timeSeconds: Int,
-    val color: Color
-)
-
 @HiltViewModel
 class StatsOverviewViewModel @Inject constructor(
     private val statsRepository: StatsRepository,
-    private val bookRepository: BookRepository
+    private val bookRepository: BookRepository,
 ) : ViewModel() {
     private var _uiState = MutableStatisticsOverviewUiState()
     val uiState: StatsOverviewUiState = _uiState
+    private var allDailyCounts: Map<LocalDate, Count> = emptyMap()
 
     init {
         reloadData()
@@ -49,22 +40,51 @@ class StatsOverviewViewModel @Inject constructor(
 
             val time = System.currentTimeMillis()
             Log.d("AppReadingStats", "Refresh started")
-            _uiState.selectedDate = LocalDate.now()
-
-            val startDate = _uiState.startDate
             val endDate = LocalDate.now()
+            val overviewCache = statsRepository.getOverviewCache()
+            val firstStatsDate = overviewCache.firstStatsDate
+            val firstDate = firstStatsDate ?: endDate
 
-            val dailyCounts = statsRepository.getDailyCounts(startDate, endDate)
-            generateLevelMap(dailyCounts, startDate, endDate)
+            _uiState.startDate = firstDate
+            _uiState.firstStatsDate = firstStatsDate
+            _uiState.totalSummary = overviewCache.summary
 
-            val bookRecordsMap = statsRepository.getBookRecords(startDate, endDate)
+            val selectedDate = when {
+                _uiState.selectedDate.isBefore(firstDate) -> endDate
+                _uiState.selectedDate.isAfter(endDate) -> endDate
+                else -> _uiState.selectedDate
+            }
+            _uiState.selectedDate = selectedDate
+
+            val dailyCounts = statsRepository.getDailyCounts(firstDate, endDate)
+            allDailyCounts = dailyCounts
+            generateLevelMap(dailyCounts)
+
+            val bookRecordsMap = statsRepository.getBookRecords(firstDate, endDate)
+
             _uiState.bookRecordsByDate = bookRecordsMap
-            val allBookIds = bookRecordsMap.flatMap { it.value.map { record -> record.bookId } }
+            _uiState.monthlySessions = getMonthlySessions(firstStatsDate, endDate, overviewCache.monthlySessions)
+            _uiState.readBookIds = overviewCache.readBooks.map { it.bookId }
+            _uiState.finishedBookIds = overviewCache.finishedBooks.map { it.bookId }
+            _uiState.favoritedBookIds = overviewCache.favoritedBooks.map { it.bookId }
+            _uiState.bookFirstReadDateMap = overviewCache.readBooks.associate { it.bookId to it.date }
+            _uiState.bookFirstFinishedDateMap = overviewCache.finishedBooks.associate { it.bookId to it.date }
+            _uiState.bookFavoriteDateMap = overviewCache.favoritedBooks.associate { it.bookId to it.date }
+            _uiState.bookInformationMap.clear()
+            val allBookIds = (
+                bookRecordsMap
+                .flatMap { it.value.map { record -> record.bookId } }
+                    + _uiState.readBookIds.take(10)
+                    + _uiState.finishedBookIds.take(10)
+                    + _uiState.favoritedBookIds.take(10)
+                )
+                .distinct()
 
             allBookIds.fastForEach { id ->
                 _uiState.bookInformationMap[id] = bookRepository.getStateBookInformation(id, viewModelScope)
             }
-            selectDate(_uiState.selectedDate)
+            getDateDetails(selectedDate)
+            loadSelectedRange(selectedDate)
 
             _uiState.isLoading = false
             val elapsed = (System.currentTimeMillis() - time) / 1000.0
@@ -75,6 +95,17 @@ class StatsOverviewViewModel @Inject constructor(
     fun selectDate(date: LocalDate) {
         _uiState.selectedDate = date
         getDateDetails(date)
+        viewModelScope.launch(Dispatchers.IO) {
+            loadSelectedRange(date)
+        }
+    }
+
+    fun setSelectedView(index: Int) {
+        if (_uiState.selectedViewIndex == index) return
+        _uiState.selectedViewIndex = index
+        viewModelScope.launch(Dispatchers.IO) {
+            loadSelectedRange(_uiState.selectedDate)
+        }
     }
 
     private fun getDateDetails(selectedDate: LocalDate) {
@@ -108,9 +139,7 @@ class StatsOverviewViewModel @Inject constructor(
     }
 
     private fun generateLevelMap(
-        dailyCounts: Map<LocalDate, Count>,
-        startDate: LocalDate,
-        endDate: LocalDate
+        dailyCounts: Map<LocalDate, Count>
     ) {
         val dateTotalTimeMap = dailyCounts.mapValues { (_, count) -> count.getTotalMinutes() }
         val localDateList = dateTotalTimeMap.keys.sorted()
@@ -136,5 +165,45 @@ class StatsOverviewViewModel @Inject constructor(
             }
         }
         _uiState.dateLevelMap = dateLevelMap
+    }
+
+    private fun getMonthlySessions(
+        firstStatsDate: LocalDate?,
+        endDate: LocalDate,
+        cachedSessions: List<StatsMonthSessions>
+    ): List<Pair<YearMonth, Int>> {
+        val firstMonth = YearMonth.from(firstStatsDate ?: endDate)
+        val lastMonth = YearMonth.from(endDate)
+        val months = generateSequence(firstMonth) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(lastMonth) }
+            .toList()
+        val sessions = cachedSessions
+            .associate { YearMonth.of(it.year, it.month) to it.sessions }
+
+        return months.map { it to (sessions[it] ?: 0) }
+    }
+
+    private fun loadSelectedRange(selectedDate: LocalDate) {
+        val viewOption = StatsViewOption.fromIndex(_uiState.selectedViewIndex)
+        val range = viewOption.rangeFor(selectedDate)
+        val startDate = maxOf(range.start, _uiState.startDate)
+        val endDate = minOf(range.endInclusive, LocalDate.now())
+        val dates = generateSequence(startDate) { it.plusDays(1) }
+            .takeWhile { !it.isAfter(endDate) }
+            .toList()
+
+        _uiState.targetDateRange = startDate to endDate
+        _uiState.targetDateRangeRecordsMap = dates.associateWith { _uiState.bookRecordsByDate[it].orEmpty() }
+        _uiState.targetDateRangeCountMap = dates.associateWith { allDailyCounts[it] ?: Count() }
+
+        val ids = _uiState.targetDateRangeRecordsMap.values
+            .flatten()
+            .map { it.bookId }
+            .toSet()
+        ids.forEach { id ->
+            if (!_uiState.bookInformationMap.containsKey(id)) {
+                _uiState.bookInformationMap[id] = bookRepository.getStateBookInformation(id, viewModelScope)
+            }
+        }
     }
 }

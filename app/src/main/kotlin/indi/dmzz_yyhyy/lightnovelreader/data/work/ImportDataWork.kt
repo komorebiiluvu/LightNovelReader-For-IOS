@@ -11,6 +11,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalDataManager
 import indi.dmzz_yyhyy.lightnovelreader.data.local.cbor.AppLocalData
+import indi.dmzz_yyhyy.lightnovelreader.data.statistics.StatsRepository
 import indi.dmzz_yyhyy.lightnovelreader.utils.readAppLocalData
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
@@ -21,7 +22,8 @@ import java.io.FileInputStream
 class ImportDataWork @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val localDataManager: LocalDataManager
+    private val localDataManager: LocalDataManager,
+    private val statsRepository: StatsRepository
 ) : CoroutineWorker(appContext, workerParams) {
     companion object {
         const val TAG = "ImportDataWork"
@@ -42,6 +44,7 @@ class ImportDataWork @AssistedInject constructor(
             e.printStackTrace()
             return Result.failure()
         } ?: return Result.failure()
+        statsRepository.clearStatsStore()
         if (overwrite) {
             localDataManager.cleanDatabaseWithoutGlobalUserData()
         }

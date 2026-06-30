@@ -1,6 +1,8 @@
 package indi.dmzz_yyhyy.lightnovelreader.utils
 
 import android.icu.text.MeasureFormat
+import android.icu.text.NumberFormat
+import android.icu.util.Measure
 import android.icu.util.MeasureUnit
 import android.os.Build
 import java.util.Locale
@@ -78,4 +80,16 @@ data class DurationFormat(val locale: Locale = Locale.getDefault()) {
             Unit.MILLISECOND -> "毫秒"
         }
     }
+}
+
+fun formatMeasureUnitName(
+    count: Int,
+    unit: MeasureUnit,
+    locale: Locale
+): String {
+    val number = NumberFormat.getInstance(locale).format(count)
+    val measure = MeasureFormat
+        .getInstance(locale, MeasureFormat.FormatWidth.WIDE)
+        .format(Measure(count, unit))
+    return measure.replace(number, "").trim()
 }

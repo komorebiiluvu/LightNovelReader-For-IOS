@@ -13,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalDataManager
 import indi.dmzz_yyhyy.lightnovelreader.data.local.cbor.LocalData
+import indi.dmzz_yyhyy.lightnovelreader.data.statistics.StatsRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UserDataRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceManager
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceProvider
@@ -33,6 +34,7 @@ class SourceChangeViewModel @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
     private val webBookDataSourceProvider: WebBookDataSourceProvider,
     private val localDataManager: LocalDataManager,
+    private val statsRepository: StatsRepository,
     private val userDataRepository: UserDataRepository,
     webBookDataSourceManager: WebBookDataSourceManager
 ) : ViewModel() {
@@ -52,6 +54,7 @@ class SourceChangeViewModel @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch(Dispatchers.IO) {
             var isCleanedLocalData = false
             try {
+                statsRepository.clearStatsStore()
                 val result = localDataManager.exportCurrentLocalData()
                     .andThen { data ->
                         runCatching {

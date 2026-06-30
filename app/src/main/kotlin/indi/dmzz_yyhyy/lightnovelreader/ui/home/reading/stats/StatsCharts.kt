@@ -1,5 +1,12 @@
 package indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,6 +79,34 @@ private val EndAxisItemPlacer = VerticalAxis.ItemPlacer.count({ 8 })
 private fun useHoursUnit(values: List<Float>): Boolean =
     values.maxOrNull()?.let { it > 400f } == true
 
+private fun readingChartTransition() =
+    (fadeIn(tween(220)) + slideInHorizontally(tween(220)) { it / 5 })
+        .togetherWith(fadeOut(tween(160)) + slideOutHorizontally(tween(160)) { -it / 5 })
+
+@Composable
+private fun ReadingStatisticsHeader(
+    title: String,
+    unit: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Text(
+            text = title,
+            style = typography.titleMedium
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = unit.trim(),
+            style = typography.labelMedium,
+            color = colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 @Composable
 fun rememberAxisLabelComponent(): TextComponent {
     val colorScheme = colorScheme
@@ -130,16 +165,13 @@ private fun DailyStatsChart(
     statsMap: Map<LocalDate, Count>
 ) {
     val formatter = DateTimeFormatter.ofPattern("MM/dd", LocalLocale.current.platformLocale)
-    Text(
-        modifier = Modifier.padding(top = 10.dp),
-        text = stringResource(R.string.detail_of_date, date.format(formatter)),
-        style = typography.titleMedium
-    )
     val hourlyMap = statsMap[date]?.getHourStatistics() ?: emptyMap()
     val total = hourlyMap.values.sum()
     if (total < 1) {
         Box(
-            modifier = Modifier.height(80.dp).fillMaxWidth(),
+            modifier = Modifier
+                .height(80.dp)
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Text(stringResource(R.string.no_records))
@@ -158,6 +190,7 @@ private fun DailyStatsChart(
     }
 
     val hourClockLabel = stringResource(R.string.unit_hour_clock)
+    val unitLabel = stringResource(if (useHoursOnAxis) R.string.unit_hours else R.string.unit_minutes)
     val marker = rememberMarker(
         valueFormatter = { _, targets ->
             val column = (targets[0] as ColumnCartesianLayerMarkerTarget).columns[0]
@@ -169,39 +202,45 @@ private fun DailyStatsChart(
         }
     )
 
-    CartesianChartHost(
-        chart = rememberCartesianChart(
-            rememberColumnCartesianLayer(
-                ColumnCartesianLayer.ColumnProvider.series(
-                    rememberLineComponent(
-                        fill = Fill(colorScheme.primary),
-                        thickness = 36.dp,
-                        shape = RoundedCornerShape(topStartPercent = 26, topEndPercent = 26)
+    Column(Modifier.fillMaxWidth()) {
+        ReadingStatisticsHeader(
+            title = stringResource(R.string.stats_reading_statistics_of, date.format(formatter)),
+            unit = unitLabel
+        )
+        CartesianChartHost(
+            chart = rememberCartesianChart(
+                rememberColumnCartesianLayer(
+                    ColumnCartesianLayer.ColumnProvider.series(
+                        rememberLineComponent(
+                            fill = Fill(colorScheme.primary),
+                            thickness = 36.dp,
+                            shape = RoundedCornerShape(topStartPercent = 26, topEndPercent = 26)
+                        )
                     )
-                )
+                ),
+                endAxis = VerticalAxis.rememberEnd(
+                    label = rememberAxisLabelComponent(),
+                    itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
+                    guideline = rememberAxisGuidelineComponent(),
+                    valueFormatter = axisValueFormatter
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = rememberAxisLabelComponent(),
+                    itemPlacer = HorizontalAxis.ItemPlacer.aligned(spacing = { 6 }),
+                    valueFormatter = CartesianValueFormatter { _, x, _ ->
+                        "${x.toInt()}$hourClockLabel"
+                    }
+                ),
+                marker = marker,
+                markerController = CartesianMarkerController.rememberToggleOnTap(),
             ),
-            endAxis = VerticalAxis.rememberEnd(
-                label = rememberAxisLabelComponent(),
-                itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
-                guideline = rememberAxisGuidelineComponent(),
-                valueFormatter = axisValueFormatter
-            ),
-            bottomAxis = HorizontalAxis.rememberBottom(
-                label = rememberAxisLabelComponent(),
-                itemPlacer = HorizontalAxis.ItemPlacer.aligned(spacing = { 6 }),
-                valueFormatter = CartesianValueFormatter { _, x, _ ->
-                    "${x.toInt()}$hourClockLabel"
-                }
-            ),
-            marker = marker,
-            markerController = CartesianMarkerController.rememberToggleOnTap(),
-        ),
-        modelProducer = modelProducer,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp),
-        scrollState = rememberVicoScrollState(scrollEnabled = false),
-    )
+            modelProducer = modelProducer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            scrollState = rememberVicoScrollState(scrollEnabled = false),
+        )
+    }
 }
 
 @Composable
@@ -313,8 +352,14 @@ fun WeeklyStatsChart(
             zoomState = rememberVicoZoomState(zoomEnabled = false)
         )
 
-        if (selectedIndex in dates.indices) {
-            DailyStatsChart(date = dates[selectedIndex], statsMap = statsMap)
+        AnimatedContent(
+            targetState = selectedIndex,
+            transitionSpec = { readingChartTransition() },
+            label = "DailyStatsChart"
+        ) { index ->
+            if (index in dates.indices) {
+                DailyStatsChart(date = dates[index], statsMap = statsMap)
+            }
         }
     }
 }
@@ -469,11 +514,17 @@ fun MonthlyStatsChart(
             scrollState = rememberVicoScrollState(scrollEnabled = false),
         )
 
-        if (selectedWeek in weekBuckets.indices) {
-            WeekDailyBreakdown(
-                bucket = weekBuckets[selectedWeek],
-                statsMap = statsMap
-            )
+        AnimatedContent(
+            targetState = selectedWeek,
+            transitionSpec = { readingChartTransition() },
+            label = "WeeklyStatsChart"
+        ) { week ->
+            if (week in weekBuckets.indices) {
+                WeekDailyBreakdown(
+                    bucket = weekBuckets[week],
+                    statsMap = statsMap
+                )
+            }
         }
     }
 }
@@ -483,12 +534,6 @@ private fun WeekDailyBreakdown(
     bucket: Week,
     statsMap: Map<LocalDate, Count>
 ) {
-    Text(
-        modifier = Modifier.padding(top = 10.dp),
-        text = stringResource(R.string.detail_of_week, bucket.weekIndex),
-        style = typography.titleMedium
-    )
-
     val locale = LocalLocale.current.platformLocale
     val dateLabels = remember(bucket, locale) {
         val fmt = DateTimeFormatter.ofPattern("MM-dd", locale)
@@ -499,6 +544,7 @@ private fun WeekDailyBreakdown(
     }
     val useHoursOnAxis = remember(values) { useHoursUnit(values) }
     val axisValueFormatter = rememberReadingTimeAxisFormatter(useHoursOnAxis)
+    val unitLabel = stringResource(if (useHoursOnAxis) R.string.unit_hours else R.string.unit_minutes)
 
     if (values.all { it == 0f }) {
         Box(
@@ -533,37 +579,46 @@ private fun WeekDailyBreakdown(
         }
     )
 
-    CartesianChartHost(
-        chart = rememberCartesianChart(
-            rememberColumnCartesianLayer(
-                ColumnCartesianLayer.ColumnProvider.series(
-                    rememberLineComponent(
-                        fill = Fill(colorScheme.primary),
-                        thickness = 24.dp,
-                        shape = RoundedCornerShape(topStartPercent = 26, topEndPercent = 26)
+    Column(Modifier.fillMaxWidth()) {
+        ReadingStatisticsHeader(
+            title = stringResource(
+                R.string.stats_reading_statistics_of,
+                stringResource(R.string.week_label_format, bucket.weekIndex)
+            ),
+            unit = unitLabel
+        )
+        CartesianChartHost(
+            chart = rememberCartesianChart(
+                rememberColumnCartesianLayer(
+                    ColumnCartesianLayer.ColumnProvider.series(
+                        rememberLineComponent(
+                            fill = Fill(colorScheme.primary),
+                            thickness = 24.dp,
+                            shape = RoundedCornerShape(topStartPercent = 26, topEndPercent = 26)
+                        )
                     )
-                )
+                ),
+                endAxis = VerticalAxis.rememberEnd(
+                    label = rememberAxisLabelComponent(),
+                    itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
+                    guideline = rememberAxisGuidelineComponent(),
+                    valueFormatter = axisValueFormatter
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = rememberAxisLabelComponent(),
+                    valueFormatter = BottomAxisValueFormatter
+                ),
+                marker = marker,
+                markerController = CartesianMarkerController.rememberToggleOnTap(),
             ),
-            endAxis = VerticalAxis.rememberEnd(
-                label = rememberAxisLabelComponent(),
-                itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
-                guideline = rememberAxisGuidelineComponent(),
-                valueFormatter = axisValueFormatter
-            ),
-            bottomAxis = HorizontalAxis.rememberBottom(
-                label = rememberAxisLabelComponent(),
-                valueFormatter = BottomAxisValueFormatter
-            ),
-            marker = marker,
-            markerController = CartesianMarkerController.rememberToggleOnTap(),
-        ),
-        modelProducer = modelProducer,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp),
-        scrollState = rememberVicoScrollState(scrollEnabled = false),
-        zoomState = rememberVicoZoomState(zoomEnabled = false)
-    )
+            modelProducer = modelProducer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            scrollState = rememberVicoScrollState(scrollEnabled = false),
+            zoomState = rememberVicoZoomState(zoomEnabled = false)
+        )
+    }
 }
 
 @Composable
@@ -678,11 +733,17 @@ fun YearlyStatsChart(
             zoomState = rememberVicoZoomState(zoomEnabled = false)
         )
 
-        if (selectedMonth in 0..11) {
-            MonthWeeklyBreakdown(
-                yearMonth = YearMonth.of(year, selectedMonth + 1),
-                statsMap = statsMap
-            )
+        AnimatedContent(
+            targetState = selectedMonth,
+            transitionSpec = { readingChartTransition() },
+            label = "MonthlyStatsChart"
+        ) { month ->
+            if (month in 0..11) {
+                MonthWeeklyBreakdown(
+                    yearMonth = YearMonth.of(year, month + 1),
+                    statsMap = statsMap
+                )
+            }
         }
     }
 }
@@ -692,14 +753,10 @@ private fun MonthWeeklyBreakdown(
     yearMonth: YearMonth,
     statsMap: Map<LocalDate, Count>
 ) {
-    val monthName = remember(yearMonth) {
-        yearMonth.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())
+    val locale = LocalLocale.current.platformLocale
+    val monthName = remember(yearMonth, locale) {
+        yearMonth.month.getDisplayName(JavaTextStyle.FULL, locale)
     }
-    Text(
-        modifier = Modifier.padding(top = 10.dp),
-        text = monthName,
-        style = typography.titleMedium
-    )
 
     val weekBuckets = remember(yearMonth) { buildWeek(yearMonth) }
     val weekLabels = weekBuckets.map { stringResource(R.string.week_label_format, it.weekIndex) }
@@ -716,6 +773,7 @@ private fun MonthWeeklyBreakdown(
     }
     val useHoursOnAxis = remember(values) { useHoursUnit(values) }
     val axisValueFormatter = rememberReadingTimeAxisFormatter(useHoursOnAxis)
+    val unitLabel = stringResource(if (useHoursOnAxis) R.string.unit_hours else R.string.unit_minutes)
 
     if (values.all { it == 0f }) {
         Box(
@@ -750,35 +808,41 @@ private fun MonthWeeklyBreakdown(
         }
     )
 
-    CartesianChartHost(
-        chart = rememberCartesianChart(
-            rememberColumnCartesianLayer(
-                ColumnCartesianLayer.ColumnProvider.series(
-                    rememberLineComponent(
-                        fill = Fill(colorScheme.primary),
-                        thickness = 24.dp,
-                        shape = RoundedCornerShape(topStartPercent = 26, topEndPercent = 26)
+    Column(Modifier.fillMaxWidth()) {
+        ReadingStatisticsHeader(
+            title = stringResource(R.string.stats_reading_statistics_of, monthName),
+            unit = unitLabel
+        )
+        CartesianChartHost(
+            chart = rememberCartesianChart(
+                rememberColumnCartesianLayer(
+                    ColumnCartesianLayer.ColumnProvider.series(
+                        rememberLineComponent(
+                            fill = Fill(colorScheme.primary),
+                            thickness = 24.dp,
+                            shape = RoundedCornerShape(topStartPercent = 26, topEndPercent = 26)
+                        )
                     )
-                )
+                ),
+                endAxis = VerticalAxis.rememberEnd(
+                    label = rememberAxisLabelComponent(),
+                    itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
+                    guideline = rememberAxisGuidelineComponent(),
+                    valueFormatter = axisValueFormatter
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = rememberAxisLabelComponent(),
+                    valueFormatter = BottomAxisValueFormatter
+                ),
+                marker = marker,
+                markerController = CartesianMarkerController.rememberToggleOnTap(),
             ),
-            endAxis = VerticalAxis.rememberEnd(
-                label = rememberAxisLabelComponent(),
-                itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
-                guideline = rememberAxisGuidelineComponent(),
-                valueFormatter = axisValueFormatter
-            ),
-            bottomAxis = HorizontalAxis.rememberBottom(
-                label = rememberAxisLabelComponent(),
-                valueFormatter = BottomAxisValueFormatter
-            ),
-            marker = marker,
-            markerController = CartesianMarkerController.rememberToggleOnTap(),
-        ),
-        modelProducer = modelProducer,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp),
-        scrollState = rememberVicoScrollState(scrollEnabled = false),
-        zoomState = rememberVicoZoomState(zoomEnabled = false)
-    )
+            modelProducer = modelProducer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            scrollState = rememberVicoScrollState(scrollEnabled = false),
+            zoomState = rememberVicoZoomState(zoomEnabled = false)
+        )
+    }
 }

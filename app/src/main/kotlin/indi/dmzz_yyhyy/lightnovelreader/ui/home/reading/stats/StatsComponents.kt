@@ -1,44 +1,154 @@
 package indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats
 
-import android.text.format.DateUtils
-import androidx.compose.compiler.plugins.kotlin.lower.fastForEach
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEachIndexed
+import androidx.compose.ui.zIndex
 import indi.dmzz_yyhyy.lightnovelreader.R
-import indi.dmzz_yyhyy.lightnovelreader.data.statistics.BookRecord
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.detailed.BookStack
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.detailed.StatsCard
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.detailed.StatsDetailedUiState
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.detailed.currentDateRange
-import indi.dmzz_yyhyy.lightnovelreader.utils.normalize
-import indi.dmzz_yyhyy.lightnovelreader.utils.stats.generateTimeBarItems
+import indi.dmzz_yyhyy.lightnovelreader.ui.components.Cover
 import io.nightfish.lightnovelreader.api.book.BookInformation
 import java.time.LocalDate
+import kotlin.random.Random
+
+@Composable
+fun StatsCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    subTitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = title,
+                style = typography.titleMedium,
+                fontWeight = FontWeight.W600
+            )
+            if (subTitle != null) {
+                Text(
+                    text = subTitle,
+                    style = typography.titleSmall,
+                    color = colorScheme.secondary
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = colorScheme.surfaceContainer
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                content()
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+fun BookStack(
+    modifier: Modifier = Modifier,
+    uiState: StatsDetailedUiState,
+    books: List<String>,
+    count: Int,
+    scaleEnabled: Boolean = false,
+    compact: Boolean = true,
+    rotate: Float? = null,
+) {
+    val displayBooks = books.distinct().take(count)
+
+    BoxWithConstraints(
+        modifier = modifier.then(
+            if (compact) {
+                Modifier
+                    .wrapContentWidth()
+                    .padding(end = (displayBooks.size * 20).dp)
+            } else {
+                Modifier.fillMaxWidth()
+            }
+        )
+    ) {
+        val baseWidth = 63.dp
+        val baseOffset = 20.dp
+
+        val offsetStep = if (compact) {
+            baseOffset
+        } else {
+            if (displayBooks.size <= 1) {
+                0.dp
+            } else {
+                val availableWidth = maxWidth - baseWidth
+                (availableWidth / (displayBooks.size - 1)).coerceAtMost(baseWidth)
+            }
+        }
+
+        displayBooks.fastForEachIndexed { index, bookId ->
+            val scale = if (scaleEnabled) {
+                1f - (index * 0.01f).coerceAtMost(0.3f)
+            } else 1f
+
+            val offsetY = remember(bookId) {
+                Random.nextInt(-3, 4).dp
+            }
+
+            Box(
+                modifier = Modifier
+                    .wrapContentHeight()
+                    .zIndex((displayBooks.size - index).toFloat())
+                    .align(Alignment.CenterStart)
+                    .offset(
+                        x = offsetStep * index,
+                        y = offsetY
+                    )
+                    .graphicsLayer {
+                        rotationZ = rotate ?: 0f
+                    }
+            ) {
+                uiState.bookInformationMap[bookId]?.let {
+                    Cover(
+                        width = 63.dp * scale,
+                        height = 90.dp * scale,
+                        uri = it.coverUri,
+                        rounded = 6.dp
+                    )
+                }
+            }
+        }
+    }
+}
 
 val predefinedColors = listOf(
     Color(0xFF2196F3),
@@ -50,25 +160,6 @@ val predefinedColors = listOf(
     Color(0xFF3F51B5),
     Color(0xFFFF5722),
 )
-
-private fun assignColors(
-    records: List<BookRecord>
-): Map<String, Color> {
-    return records
-        .groupBy { it.bookId }
-        .mapValues { (_, list) -> list.sumOf { it.seconds } }
-        .toList()
-        .sortedByDescending { it.second }
-        .mapIndexed { index, (bookId, _) ->
-            val color = if (index < predefinedColors.size) {
-                predefinedColors[index]
-            } else {
-                Color.Gray
-            }
-            bookId to color
-        }
-        .toMap()
-}
 
 /**
  * @return startedBooks/finishedBooks 在日期范围内的 BookId 列表
@@ -189,116 +280,6 @@ fun ActivityStatsCard(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                     )
-                }
-            }
-        }
-    }
-}
-
-/**
- * 阅读详情卡片（适用各种时间范围）
- */
-@Composable
-fun ReadingDetailStatsCard(
-    uiState: StatsDetailedUiState
-) {
-    val dateRange = uiState.currentDateRange
-    val allRecords = uiState.targetDateRangeRecordsMap
-        .filterKeys { it in dateRange }
-        .values
-        .flatten()
-
-    StatsCard(title = stringResource(R.string.reading_details)) {
-        Column {
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val books = allRecords
-                    .sortedBy { it.lastSeen }
-                    .map { it.bookId }
-                    .distinct()
-                BookStack(
-                    uiState = uiState,
-                    books = books,
-                    count = 8,
-                    compact = false
-                )
-                Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(12.dp))
-
-            ReadingTimeBar(
-                recordList = allRecords,
-                bookInformationMap = uiState.bookInformationMap
-            )
-        }
-    }
-}
-
-@Composable
-fun ReadingTimeBar(
-    recordList: List<BookRecord>?,
-    bookInformationMap: Map<String, BookInformation>
-) {
-
-    if (recordList.isNullOrEmpty()) return
-
-    val colorMap = remember(recordList) {
-        assignColors(recordList)
-    }
-
-    val barItems = remember(recordList) {
-        generateTimeBarItems(
-            recordList,
-            bookInformationMap,
-            colorMap
-        )
-    }
-    val normalizedItems = remember(barItems) {
-        barItems.normalize()
-    }
-
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(14.dp)
-                .clip(RoundedCornerShape(4.dp))
-        ) {
-            normalizedItems.fastForEach { (item, ratio) ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .weight(ratio)
-                        .background(item.color)
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            normalizedItems.fastForEach { (item, _) ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(item.color)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        modifier = Modifier.weight(1f),
-                        text = item.title,
-                        style = typography.labelMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = DateUtils.formatElapsedTime(item.timeSeconds.toLong()),
-                        style = typography.labelMedium,
-                        color = colorScheme.onSurfaceVariant                    )
                 }
             }
         }

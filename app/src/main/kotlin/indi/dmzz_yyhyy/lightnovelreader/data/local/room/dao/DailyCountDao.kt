@@ -24,6 +24,9 @@ interface DailyCountDao {
     @Query("SELECT * FROM daily_count")
     fun getAll(): List<DailyCountEntity>
 
+    @Query("SELECT MIN(date) FROM daily_count")
+    suspend fun getFirstDate(): LocalDate?
+
     @Query("SELECT * FROM daily_count WHERE date = :date")
     fun getEntity(date: LocalDate): DailyCountEntity?
 

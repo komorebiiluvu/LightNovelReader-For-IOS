@@ -164,6 +164,11 @@ sealed class UserDataPath(
     }
     /** 已完成下载的书籍列表路径 @since Api 2 */
     data object CompletedDownloadBookList: UserDataPath("completedDownloadBookList")
+    /** 统计相关用户数据路径组 @since Api 4 */
+    data object Statistics: UserDataPath("statistics") {
+        /** 统计总览缓存 @since Api 4 */
+        data object SummaryCache: UserDataPath("summaryCache", Statistics)
+    }
     /** 插件相关用户数据路径组 @since Api 2 */
     data object Plugin: UserDataPath("plugin") {
         /** 已启用的插件列表 @since Api 2 */

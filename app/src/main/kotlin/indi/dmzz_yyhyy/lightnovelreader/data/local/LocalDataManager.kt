@@ -77,7 +77,8 @@ class LocalDataManager @Inject constructor(
         }.let(localDataList::add)
         val globalLocalData = LocalData.empty()
             .copy(userDataEntities = if (settings) userDataDao.getAllEntities().filter {
-                !webDataSourceUserDataPathSet.contains(it.path)
+                !webDataSourceUserDataPathSet.contains(it.path) &&
+                    it.path != UserDataPath.Statistics.SummaryCache.path
             }
             else emptyList())
         return Ok(
@@ -325,6 +326,7 @@ class LocalDataManager @Inject constructor(
             )
         }
         for (entity in localData.userDataEntities) {
+            if (entity.path == UserDataPath.Statistics.SummaryCache.path) continue
             userDataDao.insert(userDataDao.getEntity(entity.path)?.let(entity::merge) ?: entity)
         }
         return Ok(Unit)

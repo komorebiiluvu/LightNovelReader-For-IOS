@@ -22,6 +22,12 @@ interface BookRecordDao {
     @Query("SELECT * FROM book_records")
     fun getAllBookRecords(): List<BookRecordEntity>
 
+    @Query("SELECT MIN(date) FROM book_records")
+    suspend fun getFirstDate(): LocalDate?
+
+    @Query("SELECT MIN(date) FROM book_records WHERE book_id != :bookId")
+    suspend fun getFirstDateExcept(bookId: String): LocalDate?
+
     @Query("SELECT * FROM book_records WHERE date = :date")
     suspend fun getBookRecordsForDate(date: LocalDate): List<BookRecordEntity>
 

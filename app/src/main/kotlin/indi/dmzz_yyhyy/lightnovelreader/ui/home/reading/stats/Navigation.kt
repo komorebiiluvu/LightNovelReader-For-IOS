@@ -6,8 +6,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import io.nightfish.lightnovelreader.api.ui.LocalNavController
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.detailed.navigateToReadingStatsDetailedDestination
-import indi.dmzz_yyhyy.lightnovelreader.ui.home.reading.stats.detailed.readingStatsDetailedDestination
 import io.nightfish.lightnovelreader.api.Route
 import indi.dmzz_yyhyy.lightnovelreader.utils.isResumed
 import indi.dmzz_yyhyy.lightnovelreader.utils.popBackStackIfResumed
@@ -17,7 +15,6 @@ fun NavGraphBuilder.readingStatsNavigation() {
         startDestination = Route.Main.Reading.Stats.Overview
     ) {
         readingStatsOverviewDestination()
-        readingStatsDetailedDestination()
     }
 }
 
@@ -28,7 +25,6 @@ fun NavGraphBuilder.readingStatsOverviewDestination() {
         StatsOverviewScreen(
             onClickBack = navController::popBackStackIfResumed,
             viewModel = statsOverviewViewModel,
-            onClickDetailScreen = navController::navigateToReadingStatsDetailedDestination
         )
     }
 }
