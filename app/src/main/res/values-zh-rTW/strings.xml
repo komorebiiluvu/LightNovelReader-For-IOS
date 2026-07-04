@@ -242,8 +242,8 @@
     <string name="book_manager_delete_cache_title">刪除書本快取</string>
     <string name="book_manager_delete_cache_content">你確定要刪除所有已選書本的章節快取內容嗎？你之後可以重新取得線上內容。\n此動作無法撤回。</string>
     <string name="book_manager_no_local_reading_record">無本地閱讀記錄</string>
-    <string name="book_manager_clear_orphaned">Clear orphaned data</string>
-    <string name="book_manager_clear_orphaned_title">Clear orphaned data</string>
+    <string name="book_manager_clear_orphaned">刪除無用資料</string>
+    <string name="book_manager_clear_orphaned_title">刪除無用資料</string>
     <string name="book_manager_clear_orphaned_content">要刪除已無法連結到本地書本的章節資料嗎？</string>
     <string name="book_manager_group_index_only">未快取內容的書本（%1$d）</string>
     <string name="book_manager_cleared_items">刪除了 %1$d 個內容</string>
@@ -316,9 +316,9 @@
     <string name="detail_info_word_count_content">%1$s 字</string>
     <string name="detail_info_stats_count_content">共 %1$d卷，%2$d章</string>
     <string name="local_book_info_title">書本快取詳情</string>
-    <string name="local_book_info_book_information">Book information</string>
+    <string name="local_book_info_book_information">書本資料</string>
     <string name="local_book_info_volume_index">卷目錄</string>
-    <string name="local_book_info_chapter_information">Chapter information</string>
+    <string name="local_book_info_chapter_information">章節資料</string>
     <string name="local_book_info_chapter_content">章節內容</string>
     <string name="local_book_info_reading_record">閱讀記錄</string>
     <string name="local_book_info_total">統計</string>
