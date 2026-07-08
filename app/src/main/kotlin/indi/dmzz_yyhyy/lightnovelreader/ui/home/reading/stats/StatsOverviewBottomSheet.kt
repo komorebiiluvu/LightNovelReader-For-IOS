@@ -11,17 +11,13 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -46,16 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.fastForEachIndexed
-import androidx.compose.ui.zIndex
 import com.patrykandpatrick.vico.compose.cartesian.AutoScrollCondition
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.Scroll
@@ -82,7 +74,6 @@ import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.utils.formatMeasureUnitName
 import java.time.YearMonth
-import kotlin.math.floor
 
 private val MonthLabelKey = ExtraStore.Key<List<String>>()
 private val MonthLabelFormatter = CartesianValueFormatter { context, x, _ ->
@@ -203,7 +194,6 @@ fun StatsSessionsSheetContent(uiState: StatsOverviewUiState) {
     var range by remember { mutableStateOf(SessionRange.RECENT) }
 
     val monthlySessions = uiState.monthlySessions
-
     val sessions = remember(monthlySessions, range) {
         when (range) {
             SessionRange.ALL -> monthlySessions
@@ -223,13 +213,19 @@ fun StatsSessionsSheetContent(uiState: StatsOverviewUiState) {
     Column(Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = stringResource(R.string.total),
+                    style = typography.labelMedium,
+                    color = colorScheme.secondary
+                )
                 Text(
                     text = values.sum().toInt().toString(),
-                    style = typography.displayMedium,
-                    fontWeight = FontWeight.W600
+                    style = typography.displayMedium
                 )
             }
 
@@ -255,25 +251,6 @@ fun StatsSessionsSheetContent(uiState: StatsOverviewUiState) {
 
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.stats_sessions_monthly_axis_label),
-                style = typography.labelMedium,
-                color = colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = stringResource(R.string.stats_sessions_cumulative_axis_label),
-                style = typography.labelMedium,
-                color = colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
         AnimatedContent(
             targetState = range,
             modifier = Modifier
@@ -295,11 +272,32 @@ fun StatsSessionsSheetContent(uiState: StatsOverviewUiState) {
                 SessionRange.RECENT -> monthlySessions.takeLast(6)
             }
 
-            StatsSessionsChart(
-                sessions = targetSessions,
-                scrollEnabled = state == SessionRange.ALL,
-                fixedSpacing = state == SessionRange.ALL
-            )
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.stats_sessions_monthly_axis_label),
+                        style = typography.labelMedium,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = stringResource(R.string.stats_sessions_cumulative_axis_label),
+                        style = typography.labelMedium,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                StatsSessionsChart(
+                    sessions = targetSessions,
+                    scrollEnabled = state == SessionRange.ALL,
+                    fixedSpacing = state == SessionRange.ALL
+                )
+            }
         }
     }
 }

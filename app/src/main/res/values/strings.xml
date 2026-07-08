@@ -418,6 +418,7 @@
     <string name="cached">Cached</string>
     <string name="cached_false">Not Cached</string>
     <string name="others">Others</string>
+    <string name="total">Total</string>
     <string name="unit_hour_clock">h</string>
     <string name="unit_hours">h&#160;</string>
     <string name="unit_minutes">m&#160;</string>

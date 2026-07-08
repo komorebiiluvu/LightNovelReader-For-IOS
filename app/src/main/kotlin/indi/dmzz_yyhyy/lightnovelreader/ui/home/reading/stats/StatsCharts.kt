@@ -299,7 +299,7 @@ fun WeeklyStatsChart(
         Row {
             Column {
                 Text(
-                    text = "总计",
+                    text = stringResource(R.string.total),
                     style = typography.bodyMedium,
                     color = colorScheme.onSurfaceVariant
                 )
@@ -462,7 +462,7 @@ fun MonthlyStatsChart(
         Row {
             Column {
                 Text(
-                    text = "总计",
+                    text = stringResource(R.string.total),
                     style = typography.bodyMedium,
                     color = colorScheme.onSurfaceVariant
                 )
@@ -680,7 +680,7 @@ fun YearlyStatsChart(
         Row {
             Column {
                 Text(
-                    text = "总计",
+                    text = stringResource(R.string.total),
                     style = typography.bodyMedium,
                     color = colorScheme.onSurfaceVariant
                 )
