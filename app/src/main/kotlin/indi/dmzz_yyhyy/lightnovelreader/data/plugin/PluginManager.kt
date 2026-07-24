@@ -13,11 +13,15 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.andThen
+import com.github.michaelbull.result.onErr
 import com.github.michaelbull.result.runCatching
 import com.github.michaelbull.result.unwrap
 import com.github.michaelbull.result.unwrapError
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dalvik.system.PathClassLoader
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.injector.PluginInjector
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.install.InstallState
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.install.PluginInstallError
 import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UserDataRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceManager
 import indi.dmzz_yyhyy.lightnovelreader.defaultplugin.wenku8.Wenku8Api
@@ -25,10 +29,10 @@ import indi.dmzz_yyhyy.lightnovelreader.utils.classLoader
 import indi.dmzz_yyhyy.lightnovelreader.utils.getApkSignatures
 import indi.dmzz_yyhyy.lightnovelreader.utils.isSignatureMatch
 import io.nightfish.lightnovelreader.api.ApiCompat
-import io.nightfish.lightnovelreader.api.PluginContext
 import io.nightfish.lightnovelreader.api.plugin.LightNovelReaderPlugin
 import io.nightfish.lightnovelreader.api.plugin.Plugin
 import io.nightfish.lightnovelreader.api.plugin.PluginConstants
+import io.nightfish.lightnovelreader.api.plugin.PluginContext
 import io.nightfish.lightnovelreader.api.userdata.UserDataPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -88,7 +92,7 @@ class PluginManager @Inject constructor(
         }
     }
 
-    fun unloadPlugin(packageName: String) {
+    suspend fun unloadPlugin(packageName: String) {
         loadedPluginMap[packageName]?.onUnload()
         mutableLoadedPluginMap.remove(packageName)
         webBookDataSourceManager.unloadWebDataSourcesFromClassLoader(packageName)
@@ -171,7 +175,7 @@ class PluginManager @Inject constructor(
         }
     }
 
-    fun initAllPlugin() {
+    suspend fun initAllPlugin() {
         pluginsTempDir.deleteRecursively()
         webBookDataSourceManager.loadWebDataSourceFromClass(
             Wenku8Api::class.java,
@@ -416,7 +420,7 @@ class PluginManager @Inject constructor(
         getPluginLoadError(getPluginDir(packageName))
     }
 
-    fun loadPlugin(
+    suspend fun loadPlugin(
         pluginPackage: String
     ): Result<PluginMetadata, Throwable> {
         val pluginDir = getPluginDir(pluginPackage)
@@ -437,6 +441,7 @@ class PluginManager @Inject constructor(
             mutableErrorPluginMap.remove(pluginPackage)
             val pluginClazz = pair.second
             val pluginContext = PluginContext(
+                packageName = packageInfo.packageName,
                 dataDir = getPluginDataDir(pluginDir),
                 pluginFile = plugin,
                 assetDir = getPluginAssetDir(pluginDir)
@@ -463,13 +468,10 @@ class PluginManager @Inject constructor(
                     pluginPackage,
                     webDataSourceClassNames
                 )
-            }.let { result ->
-                if (result.isErr) {
-                    val throwable = result.unwrapError()
-                    markPluginError(pluginPackage, throwable.message.toString())
+            }.onErr {
+                    markPluginError(pluginPackage, it.message.toString())
                     unloadPlugin(pluginPackage)
-                    return@andThen Err(throwable)
-                }
+                    return@andThen Err(it)
             }
 
             mutableLoadedPluginMap[pluginPackage] = instance
@@ -487,7 +489,7 @@ class PluginManager @Inject constructor(
         }
     }
 
-    fun deletePlugin(packageName: String) {
+    suspend fun deletePlugin(packageName: String) {
         unloadPlugin(packageName)
         getPluginDir(packageName).deleteRecursively()
         mutableAllPluginMetadataList.removeAll { it.packageName == packageName }

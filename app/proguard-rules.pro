@@ -53,10 +53,6 @@
 -keep class org.dom4j.**{*;}
 -keep interface org.dom4j.** { *; }
 
-#CxHttp
--keep class * extends cxhttp.response.CxHttpResult {*;}
--keep class cxhttp.converter.* {*;}
-
 -dontwarn com.fasterxml.jackson.annotation.JsonInclude$Include
 -dontwarn com.fasterxml.jackson.core.json.JsonWriteFeature
 -dontwarn com.fasterxml.jackson.core.type.TypeReference
@@ -71,14 +67,16 @@
 -dontwarn com.fasterxml.jackson.module.kotlin.KotlinModule
 
 # The rules for plugins
--keep class indi.dmzz_yyhyy.lightnovelreader.data.** { *; }
--keep class indi.dmzz_yyhyy.lightnovelreader.utils.** { *; }
 -keep class indi.dmzz_yyhyy.lightnovelreader.R$* { *; }
+-keep public class ** implements io.nightfish.lightnovelreader.api.** { public protected *; }
+-keep public class ** extends io.nightfish.lightnovelreader.api.** { public protected *; }
 -keep,includedescriptorclasses class io.nightfish.lightnovelreader.api.** { *; }
 # Kotlin
--keep class kotlin.** { *; }
--keep class kotlinx.** { *; }
+-keep, includedescriptorclasses class kotlin.** { *; }
+-keep, includedescriptorclasses class kotlinx.** { *; }
 # Compose
--keep class androidx.compose.foundation.layout.PaddingValues { *; }
--keep class androidx.compose.ui.platform.** { *; }
--keep class androidx.compose.runtime.** { *; }
+-keep, includedescriptorclasses class androidx.** { *; }
+# Result
+-keep, includedescriptorclasses class com.github.michaelbull.result.** { *; }
+# j$
+-keep, includedescriptorclasses class j$.** { *; }

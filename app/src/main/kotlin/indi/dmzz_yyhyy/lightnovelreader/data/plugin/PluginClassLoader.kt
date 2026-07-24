@@ -34,10 +34,9 @@ class PluginClassLoader(
         val DEFAULT_SHARED_PREFIXES = listOf(
             "kotlin.",
             "kotlinx.",
+            "androidx.",
+            "j$.",
             "io.nightfish.lightnovelreader.api.",
-            "androidx.compose.foundation.layout.PaddingValues",
-            "androidx.compose.runtime.",
-            "androidx.compose.ui.platform."
         )
     }
 }
