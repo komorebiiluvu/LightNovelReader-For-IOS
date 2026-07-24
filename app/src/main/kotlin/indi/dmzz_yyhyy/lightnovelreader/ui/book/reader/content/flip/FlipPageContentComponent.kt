@@ -231,6 +231,7 @@ private fun SimpleFlipPageTextComponent(
                     } else if (event.key == Key.VolumeUp || event.key == Key.VolumeDown) {
                         when (event.type) {
                             KeyEventType.KeyDown -> {
+                                focusRequester.requestFocus()
                                 if (event.nativeKeyEvent.repeatCount == 0) {
                                     if (event.key == Key.VolumeUp) lastPage(uiState.pagerState)
                                     else nextPage(uiState.pagerState)
