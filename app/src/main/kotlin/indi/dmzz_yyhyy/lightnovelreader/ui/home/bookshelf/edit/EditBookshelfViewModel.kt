@@ -17,13 +17,13 @@ import javax.inject.Inject
 class EditBookshelfViewModel @Inject constructor(
     private val bookshelfRepository: BookshelfRepository
 ) : ViewModel() {
-    var bookshelf: Bookshelf by mutableStateOf(Bookshelf.create())
+    var bookshelf: Bookshelf by mutableStateOf(Bookshelf())
         private set
 
     fun init(id: Int?) {
         id ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            bookshelf = bookshelfRepository.getBookshelf(id) ?: Bookshelf.create()
+            bookshelf = bookshelfRepository.getBookshelf(id) ?: Bookshelf()
         }
     }
 
