@@ -88,6 +88,8 @@
     <string name="offline_desc">Проверьте доступность сайта и настройки прокси.</string>
     <string name="saved_to_pictures_dir">Saved to Pictures/LightNovelReader/%s</string>
     <string name="save_failed">Save failed</string>
+    <string name="reader_custom_font_load_failed">Failed to load custom font, reverted to default.</string>
+    <string name="reader_custom_background_load_failed">Failed to load custom background, reverted to default.</string>
     <string name="reader_first_page">You are on the first page</string>
     <string name="reader_reached_top">You have reached the top</string>
     <string name="reader_last_page">You are on the last page</string>
@@ -102,14 +104,14 @@
     <string name="plugin_invalid_desc">Unable to get plugin info; the plugin may be invalid or corrupted.</string>
     <string name="plugin_disabled">Unavailable</string>
     <string name="plugin_disabled_desc">Enabling the plugin is required to adjust settings.</string>
-    <string name="confirm_exit">Confirm Exit?</string>
-    <string name="hint_unsaved_changes_will_be_lost">If you exit now, your unsaved changes will be lost.</string>
     <string name="local_book_clear_options">Clear Options</string>
     <string name="local_book_clear_index">Clear volume and chapter index</string>
     <string name="local_book_clear_content">Clear chapter content</string>
     <string name="local_book_clear_reading">Clear reading record</string>
     <string name="local_book_clear_confirm_title">Confirm deletion</string>
     <string name="local_book_clear_confirm_content">If you continue, the selected content will be deleted and %1$s of storage space will be freed.\nYou can re-import or download the content later.\nThis action cannot be undone.</string>
+    <string name="confirm_exit">Confirm Exit?</string>
+    <string name="hint_unsaved_changes_will_be_lost">If you exit now, your unsaved changes will be lost.</string>
     <!-- Snackbar Hints -->
     <string name="cache_book_started">Началось кэширование: %1$s</string>
     <string name="cache_book_running">Эта книга сейчас кэшируется</string>
@@ -665,4 +667,7 @@
     <string name="key_local_book_sort_size">Sort by size</string>
     <string name="key_local_book_sort_last_read">Sort by last read</string>
     <string name="key_local_book_sort_chapter_count">Sort by chapter count</string>
+    <string name="restart">Restart</string>
+    <string name="current_web_data_source_not_founded">Did not found the current web data source, please check you plugin and data source settings</string>
+    <string name="never_read">Never read</string>
 </resources>
