@@ -7,8 +7,8 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.github.michaelbull.result.andThen
+import com.github.michaelbull.result.onErr
 import com.github.michaelbull.result.runCatching
-import com.github.michaelbull.result.unwrapError
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalDataManager
@@ -35,7 +35,7 @@ class ExportDataWork @AssistedInject constructor(
         val exportBookshelf = inputData.getBoolean("exportBookshelf", true)
         val exportReadingData = inputData.getBoolean("exportReadingData", true)
         val exportSetting = inputData.getBoolean("exportSetting", true)
-        val result = localDataManager.exportAppLocalData(
+        localDataManager.exportAppLocalData(
             localBookCache = exportLocalBookCache,
             bookshelf = exportBookshelf,
             readingRecord = exportReadingData,
@@ -49,11 +49,9 @@ class ExportDataWork @AssistedInject constructor(
                         }
                     }
             }
-        }
-
-        if (result.isErr) {
+        }.onErr {
             Log.e(TAG, "Failed to get AppLocalData")
-            result.unwrapError().printStackTrace()
+            it.printStackTrace()
             return Result.failure()
         }
         return Result.success()

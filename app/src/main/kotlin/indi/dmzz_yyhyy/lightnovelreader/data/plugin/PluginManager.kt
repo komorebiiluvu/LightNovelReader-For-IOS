@@ -13,10 +13,10 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.andThen
+import com.github.michaelbull.result.get
+import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.onErr
 import com.github.michaelbull.result.runCatching
-import com.github.michaelbull.result.unwrap
-import com.github.michaelbull.result.unwrapError
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dalvik.system.PathClassLoader
 import indi.dmzz_yyhyy.lightnovelreader.data.plugin.injector.PluginInjector
@@ -38,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.zip.ZipFile
@@ -103,7 +102,7 @@ class PluginManager @Inject constructor(
         }
     }
 
-    fun initAllAppPlugin(): List<PluginAppInfo> {
+    suspend fun initAllAppPlugin(): List<PluginAppInfo> {
         val intent = Intent(PluginConstants.DISCOVERY_ACTION)
         val receivers = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             appContext.packageManager.queryBroadcastReceivers(
@@ -126,10 +125,7 @@ class PluginManager @Inject constructor(
             }
 
             val appLabel = runCatching { appInfo.loadLabel(appContext.packageManager).toString() }
-                .let {
-                    if (it.isErr) packageName
-                    else it.unwrap()
-                }
+                .getOrElse { packageName }
 
             val versionName = runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -141,21 +137,16 @@ class PluginManager @Inject constructor(
                     @Suppress("DEPRECATION")
                     appContext.packageManager.getPackageInfo(packageName, 0).versionName
                 }
-            }.let {
-                if (it.isErr) ""
-                else it.unwrap() ?: ""
-            }
+            }.get() ?: ""
 
             runCatching {
                 val apkFile = File(apkPath)
                 var error: InstallState.Error? = null
-                runBlocking(Dispatchers.IO) {
-                    installPlugin(apkFile).collect {
-                        when (it) {
-                            is InstallState.Error -> error = it
-                            is InstallState.Completed -> Log.i(TAG, "App plugin successfully installed (package=$packageName)")
-                            else -> {}
-                        }
+                installPlugin(apkFile).collect {
+                    when (it) {
+                        is InstallState.Error -> error = it
+                        is InstallState.Completed -> Log.i(TAG, "App plugin successfully installed (package=$packageName)")
+                        else -> {}
                     }
                 }
                 if (error != null) {
@@ -163,9 +154,6 @@ class PluginManager @Inject constructor(
                     error.result.printStackTrace()
                     return@mapNotNull null
                 }
-            }.let {
-                if (it.isErr) ""
-                else it.unwrap()
             }
             return@mapNotNull PluginAppInfo(
                 packageName = packageName,
@@ -211,10 +199,9 @@ class PluginManager @Inject constructor(
             }
             metadata.also(mutableAllPluginMetadataList::add)
             if (enabledPlugins.contains(dir.name) && ApiCompat.isSupported(metadata.apiVersion)) {
-                val pluginMetadataResult = loadPlugin(dir.name)
-                if (pluginMetadataResult.isErr) {
+                loadPlugin(dir.name).onErr {
                     Log.e(TAG, "failed to load plugin ${dir.name}")
-                    pluginMetadataResult.unwrapError().printStackTrace()
+                    it.printStackTrace()
                 }
             }
         }
@@ -302,26 +289,17 @@ class PluginManager @Inject constructor(
         }
 
         emit(InstallState.Start.ParsePluginMetadata)
-        val pluginMetadataResult = getPluginMetadata(plugin, packageName)
-        if (pluginMetadataResult.isErr) {
-            emit(InstallState.Error(pluginMetadataResult.unwrapError()))
+        val newPluginMetadata = getPluginMetadata(plugin, packageName).onErr {
+            emit(InstallState.Error(it))
             return@flow
-        }
-        val newPluginMetadata = pluginMetadataResult.unwrap()
-        emit(
-            InstallState.Info(
-                name = newPluginMetadata.name,
-                packageName = newPluginMetadata.packageName,
-                versionName = newPluginMetadata.versionName
-            )
-        )
+        }.get() ?: return@flow
 
         emit(InstallState.Start.CheckPluginInstallLegality)
 
         val metadataFile = getPluginMetadataFile(pluginDir)
         val currentPluginApk = getPluginFile(pluginDir)
         if (currentPluginApk.exists()) {
-            val checkResult = runCatching {
+            runCatching {
                 metadataFile
                     .inputStream()
                     .use {
@@ -346,9 +324,8 @@ class PluginManager @Inject constructor(
                     return@andThen Err(PluginInstallError.PluginSignatureNotMatchError())
                 }
                 return@andThen Ok(Unit)
-            }
-            if (checkResult.isErr) {
-                emit(InstallState.Error(checkResult.unwrapError()))
+            }.onErr {
+                emit(InstallState.Error(it))
                 return@flow
             }
         }
@@ -358,45 +335,40 @@ class PluginManager @Inject constructor(
             deletePluginWithoutData(pluginDir)
             pluginDir.mkdirs()
             lock.createNewFile()
-        }.let {
-            if (it.isErr) {
-                emit(InstallState.Error(it.unwrapError()))
-                return@flow
-            }
+        }.onErr {
+            emit(InstallState.Error(it))
+            return@flow
         }
-        val writeMetadataResult = runCatching {
+        runCatching {
             getPluginMetadataFile(pluginDir)
                 .outputStream()
                 .use {
                     it.write(Json.encodeToString<PluginMetadata>(newPluginMetadata).toByteArray())
                 }
-        }
-        if (writeMetadataResult.isErr) {
-            emit(InstallState.Error(writeMetadataResult.unwrapError()))
+        }.onErr {
+            emit(InstallState.Error(it))
             return@flow
         }
 
         emit(InstallState.Start.CopyPlugin)
-        val extractLibFromApkResult = extractLibFromApk(plugin, getPluginLibsDir(pluginDir))
-        if (extractLibFromApkResult.isErr) {
-            emit(InstallState.Error(extractLibFromApkResult.unwrapError()))
+        extractLibFromApk(plugin, getPluginLibsDir(pluginDir))
+            .onErr {
+                emit(InstallState.Error(it))
+                return@flow
+            }
+        extractAssetFromApk(plugin, getPluginAssetDir(pluginDir)).onErr {
+            emit(InstallState.Error(it))
             return@flow
         }
-        val extractAssetFromApkResult = extractAssetFromApk(plugin, getPluginAssetDir(pluginDir))
-        if (extractAssetFromApkResult.isErr) {
-            emit(InstallState.Error(extractAssetFromApkResult.unwrapError()))
-            return@flow
-        }
-        val copyMainApkResult = runCatching {
+        runCatching {
             val target = getPluginFile(pluginDir)
             plugin.inputStream().buffered().use { inputStream ->
                 target.outputStream().buffered().use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
             }
-        }
-        if (copyMainApkResult.isErr) {
-            emit(InstallState.Error(copyMainApkResult.unwrapError()))
+        }.onErr {
+            emit(InstallState.Error(it))
             return@flow
         }
         lock.delete()
@@ -476,16 +448,13 @@ class PluginManager @Inject constructor(
 
             mutableLoadedPluginMap[pluginPackage] = instance
             return@andThen Ok(pair.first)
-        }.also {
-            if (it.isErr) {
-                val error = it.unwrapError()
-                Log.e(
-                    TAG,
-                    "loadPlugin($pluginPackage) failed: ${error.message ?: error.toString()}",
-                    error
-                )
-                markPluginError(pluginPackage, error.toString())
-            }
+        }.onErr { error ->
+            Log.e(
+                TAG,
+                "loadPlugin($pluginPackage) failed: ${error.message ?: error.toString()}",
+                error
+            )
+            markPluginError(pluginPackage, error.toString())
         }
     }
 

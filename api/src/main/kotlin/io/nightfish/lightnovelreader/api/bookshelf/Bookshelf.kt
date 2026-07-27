@@ -20,37 +20,13 @@ import kotlin.time.Clock
  */
 @Stable
 data class Bookshelf(
-    val id: Int,
-    val name: String,
-    val sortType: BookshelfSortType,
-    val sortReversed: Boolean,
-    val autoCache: Boolean,
-    val systemUpdateReminder: Boolean,
+    val id: Int = Clock.System.now().epochSeconds.hashCode(),
+    val name: String = "",
+    val sortType: BookshelfSortType = BookshelfSortType.Default,
+    val sortReversed: Boolean = false,
+    val autoCache: Boolean = false,
+    val systemUpdateReminder: Boolean = false,
     val allBookIds: List<String> = emptyList(),
     val pinnedBookIds: List<String> = emptyList(),
     val updatedBookIds: List<String> = emptyList()
-) {
-
-    /** [Bookshelf]的工厂方法集合 */
-    companion object {
-        /**
-         * 创建一个新的书架
-         *
-         * @return 新的空书架
-         *
-         * @since Api 4
-         */
-        fun create() =
-            Bookshelf(
-                id = Clock.System.now().epochSeconds.hashCode(),
-                name = "",
-                sortType = BookshelfSortType.Default,
-                sortReversed = false,
-                autoCache = false,
-                systemUpdateReminder = false,
-                allBookIds = emptyList(),
-                pinnedBookIds = emptyList(),
-                updatedBookIds = emptyList()
-            )
-    }
-}
+)

@@ -30,7 +30,25 @@ import io.nightfish.lightnovelreader.api.image.ImagePostProcessingPipeline
 import kotlinx.coroutines.Dispatchers
 
 @Composable
-fun Cover(width: Dp, height: Dp, uri: Uri, rounded: Dp = 8.dp) {
+fun Cover(width: Dp, height: Dp, uri: Uri, title: String, rounded: Dp = 8.dp) {
+    Box(
+        modifier = Modifier
+            .size(width, height)
+            .graphicsLayer {
+                shape = RoundedCornerShape(rounded)
+                clip = true
+            }
+    ) {
+        if (uri == Uri.EMPTY) {
+            DefaultBookCover(title = title, width = width, height = height)
+        } else {
+            RemoteBookCover(width = width, height = height, uri = uri)
+        }
+    }
+}
+
+@Composable
+private fun RemoteBookCover(width: Dp, height: Dp, uri: Uri) {
     val imageHeaderGetter = LocalImageHeaderGetter.current
     val context = LocalContext.current
     val headers = imageHeaderGetter()
@@ -54,40 +72,30 @@ fun Cover(width: Dp, height: Dp, uri: Uri, rounded: Dp = 8.dp) {
             .build()
 
     }
-    Box(
-        modifier = Modifier
-            .size(width, height)
-            .graphicsLayer {
-                shape = RoundedCornerShape(rounded)
-                clip = true
-            }
-    ) {
-        SubcomposeAsyncImage(
-            model = request,
-            contentDescription = "cover",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.size(width, height),
-            loading = {
-                Box(
-                    modifier = Modifier
-                        .size(width, height)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(width.times(0.3f))
-                    )
-                }
-            },
-            error = {
-                Box(
-                    modifier = Modifier
-                        .size(width, height)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+    SubcomposeAsyncImage(
+        model = request,
+        contentDescription = "cover",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.size(width, height),
+        loading = {
+            Box(
+                modifier = Modifier
+                    .size(width, height)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(width.times(0.3f))
                 )
-            },
-
-        )
-    }
+            }
+        },
+        error = {
+            Box(
+                modifier = Modifier
+                    .size(width, height)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            )
+        },
+    )
 }

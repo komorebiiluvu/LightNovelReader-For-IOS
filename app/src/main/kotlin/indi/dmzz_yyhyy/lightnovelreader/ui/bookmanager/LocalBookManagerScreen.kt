@@ -484,7 +484,8 @@ private fun LocalBookRow(
                 Cover(
                     width = 64.dp,
                     height = 93.dp,
-                    uri = it.coverUri
+                    uri = it.coverUri,
+                    title = it.title
                 )
 
                 Spacer(Modifier.width(12.dp))
@@ -624,7 +625,8 @@ private fun LocalBookInfoCard(
                     Cover(
                         width = 64.dp,
                         height = 93.dp,
-                        uri = it.coverUri
+                        uri = it.coverUri,
+                        title = it.title
                     )
 
                     Spacer(Modifier.width(12.dp))

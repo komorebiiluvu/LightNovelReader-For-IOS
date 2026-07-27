@@ -80,6 +80,7 @@ import io.nightfish.lightnovelreader.api.explore.ExploreBooksRow
 import io.nightfish.lightnovelreader.api.explore.ExploreDisplayBook
 import io.nightfish.lightnovelreader.api.web.explore.ExplorePageProvider
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -170,7 +171,7 @@ fun ExploreHomeScreen(
 
                     LaunchedEffect(exploreHomeUiState.explorePageBooksRawList) {
                         if (exploreHomeUiState.explorePageBooksRawList.isEmpty()) {
-                            delay(140)
+                            delay(140.milliseconds)
                             showEmptyPage = true
                         } else {
                             showEmptyPage = false
@@ -445,6 +446,7 @@ private fun ExploreBookCard(
                 width = 98.dp,
                 height = 138.dp,
                 uri = book.coverUri,
+                title = book.title,
                 rounded = 6.dp
             )
         }

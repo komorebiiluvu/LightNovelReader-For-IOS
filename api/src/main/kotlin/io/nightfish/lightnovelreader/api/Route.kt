@@ -209,6 +209,9 @@ object Route {
          * 颜色选择器调色盘用途
          */
         interface ColorPickerTarget {
+            /**
+             * 描述的翻译键id
+             */
             @get:StringRes
             val descriptionResId: Int
         }

@@ -27,6 +27,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.download.DownloadType
 import indi.dmzz_yyhyy.lightnovelreader.data.download.MutableDownloadItem
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceProvider
 import indi.dmzz_yyhyy.lightnovelreader.ui.book.detail.ExportType
+import indi.dmzz_yyhyy.lightnovelreader.utils.DefaultBookCoverRenderer
 import indi.dmzz_yyhyy.lightnovelreader.utils.network.ImageDownloader
 import io.nightfish.lightnovelreader.api.book.BookInformation
 import io.nightfish.lightnovelreader.api.book.BookVolumes
@@ -272,7 +273,15 @@ class ExportBookToEPUBWork @AssistedInject constructor(
     ): Result = withContext(Dispatchers.IO) {
         Log.d(TAG, "export volumes=$selectedVolume")
         val epubMap = mutableMapOf<String, EpubBuilder>()
-        tasks.add(ImageDownloader.Task(cover, bookInformation.coverUri))
+        if (bookInformation.coverUri == Uri.EMPTY) {
+            DefaultBookCoverRenderer.writeTo(
+                applicationContext,
+                cover,
+                bookInformation.title
+            )
+        } else {
+            tasks.add(ImageDownloader.Task(cover, bookInformation.coverUri))
+        }
         for ((currentVolumeIndex, volume) in bookVolumes.volumes.withIndex()) {
             if (!selectedVolume.contains(volume.volumeId)) continue
 
@@ -399,7 +408,15 @@ class ExportBookToEPUBWork @AssistedInject constructor(
                 val progressForVolume = (30 * currentVolumeIndex) / volumesCount
                 downloadItem.progress = (20f + progressForVolume) / 100f
             }
-            tasks.add(ImageDownloader.Task(cover, bookInformation.coverUri))
+            if (bookInformation.coverUri == Uri.EMPTY) {
+                DefaultBookCoverRenderer.writeTo(
+                    applicationContext,
+                    cover,
+                    bookInformation.title
+                )
+            } else {
+                tasks.add(ImageDownloader.Task(cover, bookInformation.coverUri))
+            }
             cover(cover)
         }
 

@@ -10,7 +10,7 @@ import java.time.LocalDateTime
  * @property id 书本id
  * @property title 书本标题
  * @property subtitle 书本副标题，如果没有则为空字符串
- * @property coverUri 书本封面的[Uri]
+ * @property coverUri 书本封面的[Uri], 当为[Uri.EMPTY]时则显示为软件默认封面
  * @property author 书本作者
  * @property description 书本简介
  * @property tags 书本的标签列表
@@ -25,11 +25,11 @@ import java.time.LocalDateTime
 data class BookInformation(
     val id: String,
     val title: String,
-    val subtitle: String,
-    val coverUri: Uri,
+    val subtitle: String = "",
+    val coverUri: Uri = Uri.EMPTY,
     val author: String,
     val description: String,
-    val tags: List<String>,
+    val tags: List<String> = emptyList(),
     val publishingHouse: String,
     val wordCount: WordCount,
     val lastUpdated: LocalDateTime,
