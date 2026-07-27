@@ -88,6 +88,8 @@
     <string name="offline_desc">目前無法取得線上資料，請重新整理再試\n檢查來源網站連線狀態，或者換個網路試試</string>
     <string name="saved_to_pictures_dir">已保存到 Pictures/LightNovelReader/%s</string>
     <string name="save_failed">保存失敗</string>
+    <string name="reader_custom_font_load_failed">Failed to load custom font, reverted to default.</string>
+    <string name="reader_custom_background_load_failed">Failed to load custom background, reverted to default.</string>
     <string name="reader_first_page">已經是第一頁了</string>
     <string name="reader_reached_top">已經到頂了</string>
     <string name="reader_last_page">已經是最後一頁了</string>
@@ -102,14 +104,14 @@
     <string name="plugin_invalid_desc">無法取得外掛資訊，外掛可能無效或損壞</string>
     <string name="plugin_disabled">不可用</string>
     <string name="plugin_disabled_desc">調整設定需要啟用外掛</string>
-    <string name="confirm_exit">確認退出？</string>
-    <string name="hint_unsaved_changes_will_be_lost">若您現在退出，未儲存的變更將會遺失。</string>
     <string name="local_book_clear_options">刪除選項</string>
     <string name="local_book_clear_index">刪除卷和章節目錄</string>
     <string name="local_book_clear_content">清除章節內容</string>
     <string name="local_book_clear_reading">刪除閱讀紀錄</string>
     <string name="local_book_clear_confirm_title">確認刪除</string>
     <string name="local_book_clear_confirm_content">如果您繼續操作，選擇的內容將會刪除並且 %1$s 儲存空間將被釋放。\n你之後可以重新匯入或下載內容。\n此動作無法撤回。</string>
+    <string name="confirm_exit">確認退出？</string>
+    <string name="hint_unsaved_changes_will_be_lost">若您現在退出，未儲存的變更將會遺失。</string>
     <!-- Snackbar Hints -->
     <string name="cache_book_started">開始快取：%1$s</string>
     <string name="cache_book_running">此書正在快取中</string>
@@ -661,4 +663,7 @@
     <string name="key_local_book_sort_size">以大小排序</string>
     <string name="key_local_book_sort_last_read">以最後閱讀時間排序</string>
     <string name="key_local_book_sort_chapter_count">以章節數量排序</string>
+    <string name="restart">重新啟動</string>
+    <string name="current_web_data_source_not_founded">找不到目前資料源，請確認您的外掛和資料源設定</string>
+    <string name="never_read">從未閱讀</string>
 </resources>
