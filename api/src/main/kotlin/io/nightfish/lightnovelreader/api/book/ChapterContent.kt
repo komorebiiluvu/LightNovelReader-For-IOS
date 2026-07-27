@@ -19,8 +19,8 @@ data class ChapterContent(
     val id: String,
     val title: String,
     val content: JsonObject,
-    val prevChapter: String?,
-    val nextChapter: String?
+    val prevChapter: String? = null,
+    val nextChapter: String? = null
 ) {
 
     /**

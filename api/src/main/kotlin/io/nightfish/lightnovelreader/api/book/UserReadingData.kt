@@ -20,35 +20,14 @@ import java.time.LocalDateTime
 @Stable
 data class UserReadingData (
     val id: String,
-    val lastReadTime: LocalDateTime?,
-    val totalReadTime: Int,
-    val readingProgress: Float,
-    val lastReadChapterId: String?,
-    val lastReadChapterTitle: String?,
-    val currentChapterReadingProgressMap: Map<String, Float>,
-    val maxChapterReadingProgressMap: Map<String, Float>
+    val lastReadTime: LocalDateTime? = null,
+    val totalReadTime: Int = 0,
+    val readingProgress: Float = 0f,
+    val lastReadChapterId: String? = null,
+    val lastReadChapterTitle: String? = null,
+    val currentChapterReadingProgressMap: Map<String, Float> = mapOf(),
+    val maxChapterReadingProgressMap: Map<String, Float> = mapOf()
 ) {
-    /** [UserReadingData]的工厂方法集合 */
-    companion object {
-        /**
-         * 创建一个新的用户阅读数据
-         * @param id 书本id
-         *
-         * @return 默认的书本阅读数据
-         *
-         * @since Api 4
-         */
-        fun new(id: String) = UserReadingData(
-            id = id,
-            lastReadTime = null,
-            totalReadTime = 0,
-            readingProgress = 0f,
-            lastReadChapterId = null,
-            lastReadChapterTitle = null,
-            currentChapterReadingProgressMap = mapOf(),
-            maxChapterReadingProgressMap = mapOf()
-        )
-    }
 
     /**
      * 获取一份修改过某个章节的阅读进度的阅读数据的副本
