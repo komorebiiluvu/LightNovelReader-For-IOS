@@ -491,7 +491,8 @@
     <string name="dialog_slider_custom">Enter Value</string>
     <string name="dialog_slider_custom_illegal_value">Please enter a valid number.</string>
     <string name="dialog_color_picker">Color Palette</string>
-    <string name="dialog_color_picker_desc">Select a color for the reader background.</string>
+    <string name="dialog_color_picker_background_desc">Select a color for the reader background.</string>
+    <string name="dialog_color_picker_text_desc">Select a color for the reader text.</string>
 
     <!-- Plugin -->
     <string name="plugin_delete_title">Delete %1$s</string>

@@ -1,6 +1,7 @@
 package io.nightfish.lightnovelreader.api
 
 import androidx.annotation.Keep
+import androidx.annotation.StringRes
 import kotlinx.serialization.Serializable
 
 /**
@@ -205,15 +206,33 @@ object Route {
         data object Reader
 
         /**
+         * 颜色选择器调色盘用途
+         */
+        interface ColorPickerTarget {
+            @get:StringRes
+            val descriptionResId: Int
+        }
+
+        /**
+         * 颜色选择器调色盘用途类型（用于路由序列化）
+         */
+        enum class ColorPickerTargetType {
+            TEXT,
+            BACKGROUND,
+        }
+
+        /**
          * 颜色选择器对话框路由
          *
          * @param colorUserDataPath 颜色用户数据的路径字符串
          * @param colors 可选颜色的ARGB值列表
+         * @param target 调色盘用途类型
          */
         @Serializable
         data class ColorPickerDialog(
             val colorUserDataPath: String,
-            val colors: LongArray
+            val colors: LongArray,
+            val target: ColorPickerTargetType = ColorPickerTargetType.BACKGROUND,
         ) {
             /**
              * 判断两个[ColorPickerDialog]是否相等
@@ -229,18 +248,20 @@ object Route {
 
                 if (colorUserDataPath != other.colorUserDataPath) return false
                 if (!colors.contentEquals(other.colors)) return false
+                if (target != other.target) return false
 
                 return true
             }
 
             /**
-             * 基于[colorUserDataPath]和[colors]计算哈希值
+             * 基于[colorUserDataPath]、[colors]和[target]计算哈希值
              *
              * @return 哈希值
              */
             override fun hashCode(): Int {
                 var result = colorUserDataPath.hashCode()
                 result = 31 * result + colors.contentHashCode()
+                result = 31 * result + target.hashCode()
                 return result
             }
         }
