@@ -8,6 +8,7 @@ import indi.dmzz_yyhyy.lightnovelreader.data.content.ContentComponentRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.image.ImageTransPostProcessingManager
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalBookDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.local.room.dao.UserDataDao
+import indi.dmzz_yyhyy.lightnovelreader.data.plugin.TopActivityProvider
 import indi.dmzz_yyhyy.lightnovelreader.data.text.TextProcessingRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.userdata.UserDataRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceManager
@@ -19,6 +20,7 @@ import io.nightfish.lightnovelreader.api.image.ImageTransPostProcessingManagerAp
 import io.nightfish.lightnovelreader.api.plugin.LightNovelReaderPlugin
 import io.nightfish.lightnovelreader.api.plugin.PluginContext
 import io.nightfish.lightnovelreader.api.text.TextProcessingRepositoryApi
+import io.nightfish.lightnovelreader.api.ui.ActivityProviderApi
 import io.nightfish.lightnovelreader.api.userdata.UserDataDaoApi
 import io.nightfish.lightnovelreader.api.userdata.UserDataRepositoryApi
 import io.nightfish.lightnovelreader.api.web.WebBookDataSourceManagerApi
@@ -37,7 +39,8 @@ class PluginInjector @Inject constructor(
     localBookDataSource: LocalBookDataSource,
     bookRepository: BookRepository,
     contentComponentRepository: ContentComponentRepository,
-    imageTransPostProcessingManager: ImageTransPostProcessingManager
+    imageTransPostProcessingManager: ImageTransPostProcessingManager,
+    topActivityProvider: TopActivityProvider
 ) {
     val injectMap = mapOf(
         Context::class.java to appContext,
@@ -49,7 +52,8 @@ class PluginInjector @Inject constructor(
         BookRepositoryApi::class.java to bookRepository,
         BookshelfRepositoryApi::class.java to bookshelfRepository,
         ContentComponentRepositoryApi::class.java to contentComponentRepository,
-        ImageTransPostProcessingManagerApi::class.java to imageTransPostProcessingManager
+        ImageTransPostProcessingManagerApi::class.java to imageTransPostProcessingManager,
+        ActivityProviderApi::class.java to topActivityProvider
     )
 
     init {
