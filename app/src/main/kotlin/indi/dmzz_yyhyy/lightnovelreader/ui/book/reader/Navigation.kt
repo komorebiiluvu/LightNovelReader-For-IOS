@@ -92,14 +92,15 @@ private fun NavGraphBuilder.colorPickerDialog() {
                 navController.popBackStack()
             },
             selectedColor = selectedColor ?: Color.Unspecified,
-            colors = route.colors.map { Color(if (it < 0) return@map Color.Unspecified else it) }
+            colors = route.colors.map { Color(if (it < 0) return@map Color.Unspecified else it) },
+            description = stringResource(route.target.toAppTarget().descriptionResId)
         )
     }
 }
 
-fun NavController.navigateToColorPickerDialog(colorUserDataPath: String, colors: List<Long>) {
+fun NavController.navigateToColorPickerDialog(colorUserDataPath: String, colors: List<Long>, target: Route.Book.ColorPickerTargetType = Route.Book.ColorPickerTargetType.BACKGROUND) {
     if (!this.isResumed()) return
-    navigate(Route.Book.ColorPickerDialog(colorUserDataPath, colors.toLongArray()))
+    navigate(Route.Book.ColorPickerDialog(colorUserDataPath, colors.toLongArray(), target))
 }
 @SuppressLint("LocalContextGetResourceValueCall")
 private fun NavGraphBuilder.imageViewerDialog() {

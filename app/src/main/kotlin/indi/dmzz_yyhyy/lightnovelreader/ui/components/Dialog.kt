@@ -723,6 +723,7 @@ fun ColorPickerDialog(
     onConfirmation: (Color) -> Unit,
     selectedColor: Color,
     colors: List<Color>,
+    description: String = stringResource(R.string.dialog_color_picker_background_desc),
 ) {
     var currentColor by remember {
         mutableStateOf(selectedColor)
@@ -731,7 +732,7 @@ fun ColorPickerDialog(
     BaseDialog (
         icon = painterResource(R.drawable.palette_24px),
         title = stringResource(R.string.dialog_color_picker),
-        description = stringResource(R.string.dialog_color_picker_desc),
+        description = description,
         onDismissRequest = onDismissRequest,
         onConfirmation = { onConfirmation(currentColor) },
         dismissText = stringResource(R.string.cancel),
