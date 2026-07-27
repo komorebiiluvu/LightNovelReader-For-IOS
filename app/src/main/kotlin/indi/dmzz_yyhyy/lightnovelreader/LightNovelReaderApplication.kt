@@ -51,7 +51,7 @@ class LightNovelReaderApplication : Application(), Configuration.Provider {
         if (BuildConfig.DEBUG) {
             System.setProperty("kotlinx.coroutines.debug", "on")
         }
-        // We have to ensure the plugin load before the activity start up, so we use run blocking here though it will block the main theard
+        // We have to ensure the plugin load before the activity start up, so we use run blocking here though it will block the main thread
         runBlocking {
             pluginManager.initAllPlugin()
         }

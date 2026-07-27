@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.github.michaelbull.result.unwrapError
+import com.github.michaelbull.result.onErr
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalDataManager
@@ -45,12 +45,12 @@ class ImportDataWork @AssistedInject constructor(
         if (overwrite) {
             localDataManager.cleanDatabaseWithoutGlobalUserData()
         }
-        val result = localDataManager.importAppLocalData(appLocalData)
-        if (result.isOk) return Result.success()
-        else {
-            Log.e(TAG, "Failed to import the data")
-            result.unwrapError().printStackTrace()
-            return Result.failure()
-        }
+        localDataManager.importAppLocalData(appLocalData)
+            .onErr {
+                Log.e(TAG, "Failed to import the data")
+                it.printStackTrace()
+                return Result.failure()
+            }
+        return Result.success()
     }
 }
