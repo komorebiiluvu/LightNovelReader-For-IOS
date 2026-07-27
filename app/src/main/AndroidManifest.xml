@@ -36,6 +36,9 @@
       tools:targetApi="36"
       android:localeConfig="@xml/locales_config"
       android:enableOnBackInvokedCallback="true">
+    <profileable
+        android:shell="true"
+        tools:targetApi="29" />
     <activity
         android:exported="true"
         android:name=".MainActivity"

@@ -69,6 +69,14 @@ android {
             versionNameSuffix = "_SN (${dateFormat.format(Date())})"
         }
 
+        register("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            vcsInfo.include = false
+        }
+
         base {
             archivesName = "LightNovelReader-${defaultConfig.versionName}"
         }

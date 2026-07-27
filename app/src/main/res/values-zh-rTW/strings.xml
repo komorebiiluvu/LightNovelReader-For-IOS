@@ -137,7 +137,6 @@
     <string name="settings_get_updates">手動檢查更新</string>
     <string name="settings_get_updates_desc">手動取得應用程式更新</string>
     <string name="settings_distribution_platform">更新發布平台</string>
-    <string name="settings_distribution_platform_settings_desc"><!--reserved--></string>
     <string name="reader_settings">閱讀設定</string>
     <string name="settings_reader_font_size">字型大小</string>
     <string name="settings_reader_line_spacing">行距</string>
@@ -472,7 +471,8 @@
     <string name="dialog_slider_custom">輸入數值</string>
     <string name="dialog_slider_custom_illegal_value">請輸入合法的數值</string>
     <string name="dialog_color_picker">調色盤</string>
-    <string name="dialog_color_picker_desc">選擇一個顏色用於閱讀器背景。</string>
+    <string name="dialog_color_picker_background_desc">選擇一個顏色用於閱讀器背景。</string>
+    <string name="dialog_color_picker_text_desc">選擇一個顏色用於閱讀器文字。</string>
     <!-- Plugin -->
     <string name="plugin_delete_title">刪除 %1$s</string>
     <string name="plugin_install_preparing">正在準備…</string>
