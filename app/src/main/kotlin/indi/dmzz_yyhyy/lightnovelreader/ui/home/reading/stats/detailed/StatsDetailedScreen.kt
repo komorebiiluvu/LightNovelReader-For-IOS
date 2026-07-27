@@ -301,6 +301,7 @@ fun BookStack(
                         width = 63.dp * scale,
                         height = 90.dp * scale,
                         uri = it.coverUri,
+                        title = it.title,
                         rounded = 6.dp
                     )
                 }?.onErr {

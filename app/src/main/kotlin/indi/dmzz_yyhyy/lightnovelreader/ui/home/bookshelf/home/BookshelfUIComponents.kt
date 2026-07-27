@@ -84,6 +84,7 @@ fun BookCardContent(
                         width = 94.dp,
                         height = 144.dp,
                         uri = bookInformation.coverUri,
+                        title = bookInformation.title,
                         rounded = 8.dp
                     )
 

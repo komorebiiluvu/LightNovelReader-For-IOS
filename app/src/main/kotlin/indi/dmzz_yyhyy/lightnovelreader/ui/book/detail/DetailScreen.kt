@@ -71,6 +71,7 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -106,6 +107,7 @@ import indi.dmzz_yyhyy.lightnovelreader.ui.components.SwitchChip
 import indi.dmzz_yyhyy.lightnovelreader.ui.components.rememberSkeletonShimmer
 import indi.dmzz_yyhyy.lightnovelreader.ui.home.bookshelf.home.BookStatusIcon
 import indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.textformatting.rules.navigateToSettingsTextFormattingRulesDestination
+import indi.dmzz_yyhyy.lightnovelreader.utils.DefaultBookCoverRenderer
 import indi.dmzz_yyhyy.lightnovelreader.utils.LocalClaimSnackbarHost
 import indi.dmzz_yyhyy.lightnovelreader.utils.LocalSnackbarHost
 import indi.dmzz_yyhyy.lightnovelreader.utils.dateFormatter
@@ -116,7 +118,10 @@ import io.nightfish.lightnovelreader.api.book.BookInformation
 import io.nightfish.lightnovelreader.api.book.ChapterInformation
 import io.nightfish.lightnovelreader.api.book.Volume
 import io.nightfish.lightnovelreader.api.ui.LocalNavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -711,6 +716,8 @@ private fun BookCardBlock(
     modifier: Modifier,
     onClickCover: (Uri) -> Unit
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val updateText = if (bookInformation.isComplete) {
         stringResource(R.string.book_completed)
     } else {
@@ -733,7 +740,19 @@ private fun BookCardBlock(
                 .wrapContentSize()
                 .clickable(
                     onClick = {
-                        onClickCover(bookInformation.coverUri)
+                        if (bookInformation.coverUri == Uri.EMPTY) {
+                            coroutineScope.launch {
+                                val uri = withContext(Dispatchers.IO) {
+                                    DefaultBookCoverRenderer.cacheUri(
+                                        context,
+                                        bookInformation.title
+                                    )
+                                }
+                                onClickCover(uri)
+                            }
+                        } else {
+                            onClickCover(bookInformation.coverUri)
+                        }
                     }
                 )
         ) {
@@ -741,6 +760,7 @@ private fun BookCardBlock(
                 height = 178.dp,
                 width = 122.dp,
                 uri = bookInformation.coverUri,
+                title = bookInformation.title,
                 rounded = 8.dp
             )
         }

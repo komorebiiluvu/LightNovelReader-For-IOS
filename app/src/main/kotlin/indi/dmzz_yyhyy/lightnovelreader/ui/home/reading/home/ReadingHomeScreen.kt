@@ -414,6 +414,7 @@ private fun ReadingBookCard(
                     width = 94.dp,
                     height = 144.dp,
                     uri = bookInformation.coverUri,
+                    title = bookInformation.title,
                     rounded = 8.dp,
                 )
 
@@ -625,6 +626,7 @@ private fun ReadingHeaderCardPage(
             height = 172.dp,
             width = 118.dp,
             uri = info.coverUri,
+            title = info.title,
             rounded = 8.dp
         )
 

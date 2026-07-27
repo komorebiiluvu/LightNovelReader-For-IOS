@@ -445,6 +445,7 @@ private fun ExploreBookCard(
                 width = 98.dp,
                 height = 138.dp,
                 uri = book.coverUri,
+                title = book.title,
                 rounded = 6.dp
             )
         }
