@@ -148,6 +148,7 @@ class Wenku8Api : WebBookDataSource {
     override val cache = Cache(
         timeout = 2 * 60 * 60 * 1000
     )
+    override val permits = 5
 
     override fun onLoad() {
         coroutineScope.launch {

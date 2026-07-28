@@ -21,6 +21,7 @@ import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.bookshelf.BookshelfRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceProvider
 import io.nightfish.lightnovelreader.api.book.BookInformation
+import io.nightfish.lightnovelreader.api.web.WebDataSourcePriority
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -44,12 +45,12 @@ class CheckUpdateWork @AssistedInject constructor(
             }
         bookshelfRepository.getAllBookshelfBooksMetadata().forEach { bookshelfBookMetadata ->
             delay(3000.milliseconds)
-            while (!appContext.isAppStopped) {
-                delay(5000.milliseconds)
-            }
             if (!needRemindBookIdSet.contains(bookshelfBookMetadata.id)) return@forEach
             Log.d("CheckUpdateWork", "Updating book id=${bookshelfBookMetadata.id}")
-            webBookDataSourceProvider.value.getBookInformation(bookshelfBookMetadata.id).onOk { bookInformation ->
+            webBookDataSourceProvider.value.getBookInformation(
+                bookshelfBookMetadata.id,
+                WebDataSourcePriority.Low
+            ).onOk { bookInformation ->
                 val webBookLastUpdate = bookInformation.lastUpdated
                 if (webBookLastUpdate.isAfter(bookshelfBookMetadata.lastUpdate)) {
                     bookshelfBookMetadata.bookShelfIds.forEach {

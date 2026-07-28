@@ -139,7 +139,6 @@
     <string name="settings_get_updates">检查更新</string>
     <string name="settings_get_updates_desc">检查并安装最新版本</string>
     <string name="settings_distribution_platform">更新分发平台</string>
-    <string name="settings_distribution_platform_settings_desc"><!--reserved--></string>
     <string name="reader_settings">阅读设置</string>
     <string name="settings_reader_font_size">字体大小</string>
     <string name="settings_reader_line_spacing">行间距</string>
@@ -475,7 +474,8 @@
     <string name="dialog_slider_custom">输入值</string>
     <string name="dialog_slider_custom_illegal_value">请输入合法的数值</string>
     <string name="dialog_color_picker">调色盘</string>
-    <string name="dialog_color_picker_desc">选择一个颜色用于阅读器背景。</string>
+    <string name="dialog_color_picker_background_desc">选择一个颜色用于阅读器背景。</string>
+    <string name="dialog_color_picker_text_desc">选择一个颜色用于阅读器文本。</string>
     <!-- Plugin -->
     <string name="plugin_delete_title">删除 %1$s</string>
     <string name="plugin_install_preparing">正在准备…</string>

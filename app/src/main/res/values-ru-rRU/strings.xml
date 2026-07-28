@@ -137,7 +137,6 @@
     <string name="settings_get_updates">Проверить обновления</string>
     <string name="settings_get_updates_desc">Проверить и установить последнюю версию.</string>
     <string name="settings_distribution_platform">Платформа распространения</string>
-    <string name="settings_distribution_platform_settings_desc"><!--reserved--></string>
     <string name="reader_settings">Настройки чтения</string>
     <string name="settings_reader_font_size">Размер шрифта</string>
     <string name="settings_reader_line_spacing">Межстрочный интервал</string>
@@ -473,7 +472,8 @@
     <string name="dialog_slider_custom">Введите значение</string>
     <string name="dialog_slider_custom_illegal_value">Пожалуйста, введите допустимое число</string>
     <string name="dialog_color_picker">Color Palette</string>
-    <string name="dialog_color_picker_desc">Select a color for the reader background.</string>
+    <string name="dialog_color_picker_background_desc">Выберите цвет фона читалки.</string>
+    <string name="dialog_color_picker_text_desc">Выберите цвет текста читалки.</string>
     <!-- Plugin -->
     <string name="plugin_delete_title">Delete %1$s</string>
     <string name="plugin_install_preparing">Preparing…</string>

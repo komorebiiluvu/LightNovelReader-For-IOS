@@ -23,3 +23,4 @@ local.properties
 /proxy/build/**
 /compiler/build/**
 /build/**
+/artifacts/
