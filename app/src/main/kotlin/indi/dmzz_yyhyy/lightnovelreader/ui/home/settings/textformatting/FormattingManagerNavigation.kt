@@ -1,8 +1,7 @@
 package indi.dmzz_yyhyy.lightnovelreader.ui.home.settings.textformatting
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -22,7 +21,7 @@ fun NavGraphBuilder.editTextFormattingRuleDialog() {
         val navController = LocalNavController.current
         val route = it.toRoute<Route.Main.EditTextFormattingRuleDialog>()
         val viewModel = hiltViewModel<EditTextFormattingRuleDialogViewModel>()
-        LifecycleEventEffect(Lifecycle.Event.ON_CREATE) {
+        LaunchedEffect(route.bookId, route.ruleId) {
             viewModel.load(route.bookId, route.ruleId)
         }
         viewModel.formattingRule?.let { rule ->

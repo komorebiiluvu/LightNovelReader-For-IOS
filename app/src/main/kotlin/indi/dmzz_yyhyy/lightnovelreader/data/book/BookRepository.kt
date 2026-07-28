@@ -12,6 +12,7 @@ import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.map
 import com.github.michaelbull.result.onErr
 import com.github.michaelbull.result.onOk
+import indi.dmzz_yyhyy.lightnovelreader.BuildConfig
 import indi.dmzz_yyhyy.lightnovelreader.data.bookshelf.BookshelfRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalBookDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.text.TextProcessingRepository
@@ -51,6 +52,7 @@ class BookRepository @Inject constructor(
     ): Flow<Result<BookInformation, WebRequestError>> = flow {
         localBookDataSource.getBookInformation(id)?.also {
             emit(Ok(it))
+            if (BuildConfig.BENCHMARK) return@flow
         }
         webBookDataSource.getBookInformation(id, priority)
             .onOk { remote ->
@@ -83,6 +85,7 @@ class BookRepository @Inject constructor(
     ): Flow<Result<BookVolumes, WebRequestError>> = flow {
         localBookDataSource.getBookVolumes(id)?.also {
             emit(Ok(it))
+            if (BuildConfig.BENCHMARK) return@flow
         }
         webBookDataSource.getBookVolumes(id, priority)
             .onOk { remote ->
@@ -107,6 +110,7 @@ class BookRepository @Inject constructor(
     ): Flow<Result<ChapterContent, WebRequestError>> = flow {
         localBookDataSource.getChapterContent(chapterId)?.also {
             emit(Ok(it))
+            if (BuildConfig.BENCHMARK) return@flow
         }
         webBookDataSource.getChapterContent(chapterId, bookId, priority)
             .onOk { remote ->

@@ -25,8 +25,6 @@ import javax.inject.Inject
 @HiltAndroidApp
 class LightNovelReaderApplication : Application(), Configuration.Provider {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    var isAppStopped = false
-        private set
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var loggerRepository: LoggerRepository
     @Inject lateinit var userDataRepository: UserDataRepository

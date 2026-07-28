@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name="indi.dmzz_yyhyy.lightnovelreader.benchmark.BenchmarkFixtureReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="indi.dmzz_yyhyy.lightnovelreader.benchmark.SEED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

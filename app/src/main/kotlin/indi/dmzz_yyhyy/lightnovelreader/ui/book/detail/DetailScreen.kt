@@ -543,7 +543,7 @@ private fun DetailContent(
                         modifier = Modifier.fadeInOnce(volume.volumeId),
                         volume = volume,
                         hideReadChapters = hideReadChapters,
-                        readCompletedChapterIds = uiState.userReadingData?.currentChapterReadingProgressMap?.filterValues { it >= 1f }?.keys?.toList() ?: emptyList(),
+                        readCompletedChapterIds = uiState.userReadingData?.maxChapterReadingProgressMap?.filterValues { it >= 1f }?.keys?.toList() ?: emptyList(),
                         onClickChapter = onClickChapter,
                         volumesSize = bookVolumes.volumes.size,
                         lastReadingChapterId = uiState.userReadingData?.lastReadChapterId

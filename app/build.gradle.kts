@@ -25,10 +25,11 @@ android {
         minSdk = 24
         targetSdk = 37
         // 版本号为x.y.z则versionCode为x*1000000+y*10000+z*1000+debug版本号(开发需要时迭代, 三位数)
-        versionCode = 1_03_00_003
+        versionCode = 1_03_00_004
         versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "BENCHMARK", "false")
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -75,6 +76,7 @@ android {
             matchingFallbacks += listOf("release")
             isDebuggable = false
             vcsInfo.include = false
+            buildConfigField("boolean", "BENCHMARK", "true")
         }
 
         base {
@@ -153,10 +155,7 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
-    androidTestImplementation(libs.compose.ui.test.junit4)
     implementation(libs.kotlin.compose.compiler.plugin)
-    // Junit
-    testImplementation(libs.junit)
     // Hilt
     ksp(libs.kotlin.metadata.jvm)
     implementation(libs.hilt.android)
