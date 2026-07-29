@@ -62,7 +62,6 @@ import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.map
 import com.github.michaelbull.result.onErr
 import com.github.michaelbull.result.onOk
-import com.github.promeg.pinyinhelper.Pinyin
 import com.valentinilk.shimmer.Shimmer
 import com.valentinilk.shimmer.ShimmerBounds
 import com.valentinilk.shimmer.rememberShimmer
@@ -79,6 +78,7 @@ import io.nightfish.lightnovelreader.api.error.WebRequestError
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import me.majiajie.tinypinyin.Pinyin
 import java.text.Collator
 import java.util.Locale
 
