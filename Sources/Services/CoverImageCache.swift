@@ -1,8 +1,14 @@
 import Foundation
+import UIKit
+import ImageIO
 
 /// 封面图片缓存：内存 LRU + 磁盘文件，下载带重试与并发去重。
 /// 用 NSLock 保护，但所有锁操作都收口在同步方法内（Swift 5.7 模式下无并发警告）。
 /// 支持同步内存命中——封面视图首帧即可直接拿到已缓存图片，避免闪动。
+///
+/// 内存中只保存按封面展示尺寸下采样后的位图（约 300~450px 宽），
+/// 避免书架/探索页几十张封面全尺寸解码撑爆 3GB 老设备内存；
+/// 磁盘仍缓存原始文件，供离线缓存/导出等场景复用。
 final class CoverImageCache {
     static let shared = CoverImageCache()
 
@@ -13,6 +19,9 @@ final class CoverImageCache {
     private var inflight: [String: Task<Data?, Never>] = [:]
     private let root: URL
 
+    /// 下采样后的封面最长边（封面展示宽约 100~150pt，3:4 比例下 420px 足够 @3x 清晰）
+    static let downsampledMaxPixel: CGFloat = 420
+
     init(root: URL? = nil) {
         if let root {
             self.root = root
@@ -22,6 +31,24 @@ final class CoverImageCache {
             try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
             self.root = base
         }
+        // 内存警告时清空位图缓存（书架/探索页大量封面是内存大户）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMemoryWarning),
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func handleMemoryWarning() {
+        lock.lock()
+        memory.removeAll()
+        memoryOrder.removeAll()
+        lock.unlock()
     }
 
     // MARK: - 同步内存读写（收口锁操作）
@@ -86,17 +113,20 @@ final class CoverImageCache {
     private func load(_ urlString: String) async -> Data? {
         let fileURL = root.appendingPathComponent(hash(urlString))
         if let cached = try? Data(contentsOf: fileURL), !cached.isEmpty {
-            insertMemory(urlString, cached)
-            return cached
+            let downsampled = Self.downsample(cached, maxPixel: Self.downsampledMaxPixel) ?? cached
+            insertMemory(urlString, downsampled)
+            return downsampled
         }
         guard let url = URL(string: urlString) else { return nil }
         for attempt in 0..<3 {
             do {
                 let (data, response) = try await URLSession.shared.data(from: url)
                 if let http = response as? HTTPURLResponse, http.statusCode == 200, !data.isEmpty {
+                    // 磁盘保存原始文件（供离线/导出复用），内存只放缩略图
                     try? data.write(to: fileURL, options: .atomic)
-                    insertMemory(urlString, data)
-                    return data
+                    let downsampled = Self.downsample(data, maxPixel: Self.downsampledMaxPixel) ?? data
+                    insertMemory(urlString, downsampled)
+                    return downsampled
                 }
             } catch {
                 // 继续重试
@@ -106,6 +136,24 @@ final class CoverImageCache {
             }
         }
         return nil
+    }
+
+    /// 用 ImageIO 缩略图解码：不完整解码原图，按目标最长边生成位图数据。
+    /// 相比先 `UIImage(data:)` 全尺寸解码再缩放，内存峰值低得多。
+    static func downsample(_ data: Data, maxPixel: CGFloat) -> Data? {
+        guard !data.isEmpty else { return nil }
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
+        let downsampleOptions = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+        ] as CFDictionary
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions) else { return nil }
+        // 统一转 JPEG 存入内存（位图信息已按展示尺寸解码，Data 体积远小于原图）
+        let uiImage = UIImage(cgImage: cgImage)
+        return uiImage.jpegData(compressionQuality: 0.85)
     }
 
     private func hash(_ text: String) -> String {

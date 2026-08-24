@@ -202,8 +202,11 @@ final class AppStore: ObservableObject {
     private var contentCache: [String: ChapterContent] = [:]
     private var contentCacheOrder: [String] = []
     private var bootstrapped = false
+    /// 后台登录重试是否已执行过（避免每次启动重复排队）
+    private var bootstrappedRetryDone = false
     private var lastUpdateCheckAt: Date?
     private var cancellables: Set<AnyCancellable> = []
+    private var persistDebounceTask: Task<Void, Never>?
 
     init(services: [BookSourceService] = AppStore.makeDefaultServices()) {
         let snapshot = AppStateSnapshot.load()
@@ -248,10 +251,19 @@ final class AppStore: ObservableObject {
             }
         }
 
-        // objectWillChange 发生在变更前，包一层 Task 等变更落地后再序列化
+        // objectWillChange 发生在变更前，包一层 Task 等变更落地后再序列化。
+        // 阅读设置滑杆/步进器拖动时对象会高频触发，持久化做 300ms 防抖合并，
+        // 避免每次拖动都全量 JSON 编码写 UserDefaults（老设备上的卡顿来源之一）。
         objectWillChange
             .sink { [weak self] _ in
-                Task { @MainActor in self?.persist() }
+                guard let self else { return }
+                self.persistDebounceTask?.cancel()
+                let task = Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    guard !Task.isCancelled else { return }
+                    self?.persist()
+                }
+                self.persistDebounceTask = task
             }
             .store(in: &cancellables)
     }
@@ -259,7 +271,8 @@ final class AppStore: ObservableObject {
     // MARK: - 持久化
 
     nonisolated private static func makeDefaultServices() -> [BookSourceService] {
-        [Wenku8Service()]
+        // KMP 数据互通：SharedKit 编译进工程时用 KMP 适配器（与上游数据层同源），否则回退纯 Swift 爬虫
+        [KmpBookSourceServiceFactory.makeDefaultService()]
     }
 
     private func persist() {
@@ -304,13 +317,29 @@ final class AppStore: ObservableObject {
     func bootstrap() async {
         guard !bootstrapped else { return }
         bootstrapped = true
-        await ensureWenku8Login()
+        // 启动只快速尝试一次登录（不重试，避免无网时拖住启动页）；失败后由后台任务自动重试
+        await ensureWenku8Login(allowRetry: false)
+        scheduleBackgroundLoginRetry()
         await reload()
         await checkForUpdates()
-        // 启动预加载：趁启动页停留期间，把探索数据拉好（首页块/各栏目第一页/标签）
-        await prewarmExplore()
+        // 启动预加载：后台并行拉探索数据，不阻塞 splash（失败/登录重试都在后台，用户无感）
+        Task { @MainActor [weak self] in
+            await self?.prewarmExplore()
+        }
         CoverImageCache.shared.pruneOlderThan(days: 14)
         prewarmCoverCache()
+    }
+
+    /// 后台自动重试登录（不阻塞 UI；网络抖动/站点短暂不可达时自愈，用户无需手动登录）
+    private func scheduleBackgroundLoginRetry() {
+        let delay: UInt64 = 8_000_000_000
+        let retryCount = 3
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: delay)
+            guard let self, !self.bootstrappedRetryDone else { return }
+            self.bootstrappedRetryDone = true
+            await self.ensureWenku8Login(allowRetry: true, maxAttempts: retryCount)
+        }
     }
 
     /// 启动预加载探索数据（登录态就绪后调用，并行拉取）
@@ -328,13 +357,25 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// 未登录时用内置账号自动登录（登录态失效后下次启动会自动重登）
-    private func ensureWenku8Login() async {
+    /// 未登录时用内置账号自动登录。
+    /// - allowRetry=false：启动时快速尝试一次，失败即返回（不拖住启动页）
+    /// - allowRetry=true：后台重试（网络抖动/站点短暂不可达时自愈），无需用户手动登录——用户大多没有文库吧账号
+    private func ensureWenku8Login(allowRetry: Bool = false, maxAttempts: Int = 1) async {
         guard let service = wenku8Service, !service.isLoggedIn else { return }
-        try? await service.login(
-            username: Wenku8Service.bundledUsername,
-            password: Wenku8Service.bundledPassword
-        )
+        let attempts = allowRetry ? maxAttempts : 1
+        for attempt in 0..<attempts {
+            do {
+                try await service.login(
+                    username: Self.bundledWenku8Username,
+                    password: Self.bundledWenku8Password
+                )
+                return
+            } catch {
+                if attempt < attempts - 1 {
+                    try? await Task.sleep(nanoseconds: UInt64(attempt + 1) * 3_000_000_000)
+                }
+            }
+        }
     }
 
     /// 预热首屏封面（前 8 本），下次启动秒开
@@ -636,9 +677,20 @@ final class AppStore: ObservableObject {
         state.error = nil
         exploreBrowse[key] = state
 
-        // 自动重试（3 次，指数退避），真机上偶发超时能自愈
+        // 自动重试（3 次，指数退避）：失败可能是未登录/网络抖动，重试前先自动登录（硬编码账号）自愈
         var lastError: Error?
         for attempt in 0..<3 {
+            // 未登录则先自动登录（内置账号），成功后继续拉数据；登录失败则重试
+            if !(services[source]?.isLoggedIn ?? true) {
+                await ensureWenku8Login(allowRetry: true, maxAttempts: 3)
+                if !(services[source]?.isLoggedIn ?? true) {
+                    lastError = BookSourceError.loginRequired
+                    if attempt < 2 {
+                        try? await Task.sleep(nanoseconds: UInt64(attempt + 1) * 700_000_000)
+                    }
+                    continue
+                }
+            }
             do {
                 let result = try await service.fetchExplorePage(category, page: page, sortSuffix: sort)
                 state = exploreBrowse[key] ?? state
@@ -675,6 +727,18 @@ final class AppStore: ObservableObject {
         }
         guard let service = services[source] else { return }
         for attempt in 0..<3 {
+            // 未登录则先自动登录（内置账号）自愈
+            if !(services[source]?.isLoggedIn ?? true) {
+                await ensureWenku8Login(allowRetry: true, maxAttempts: 3)
+                if !(services[source]?.isLoggedIn ?? true) {
+                    if attempt < 2 {
+                        try? await Task.sleep(nanoseconds: UInt64(attempt + 1) * 700_000_000)
+                        continue
+                    }
+                    homeBlocksError = "登录失败，请检查网络后重试"
+                    return
+                }
+            }
             do {
                 homeBlocks = try await service.fetchHomeBlocks()
                 homeBlocksError = nil
@@ -711,7 +775,7 @@ final class AppStore: ObservableObject {
     func refreshBookDetail(_ book: Book) async {
         guard book.id.hasPrefix("wk8-"),
               let aid = Int(book.id.dropFirst(4)),
-              let service = services[book.source] as? Wenku8Service else { return }
+              let service = services[book.source] else { return }
         guard let fresh = try? await service.fetchBookDetail(aid: aid) else { return }
         if let index = books.firstIndex(where: { $0.id == fresh.id }) {
             var merged = fresh
@@ -995,10 +1059,20 @@ final class AppStore: ObservableObject {
         searchHistory = []
     }
 
+    /// 标签 → 书库浏览栏目（转发到当前书源，KMP/纯 Swift 皆可）
+    func tagCategory(_ tag: String) -> ExploreCategory {
+        services[source]?.tagCategory(tag) ?? ExploreCategory(id: "tag-\(tag)", title: tag, path: "/modules/article/tags.php", extraParams: "&t=\(tag)", supportsSort: true)
+    }
+
     // MARK: - wenku8 账号
 
-    private var wenku8Service: Wenku8Service? {
-        services["文库8(在线)"] as? Wenku8Service
+    /// 内置账号（与 KMP 门面 bundledUsername/bundledPassword 一致；协议解耦后统一从这里取）
+    private static let bundledWenku8Username = "komorebiiluv"
+    private static let bundledWenku8Password = "komorebi041016"
+
+    /// 当前 wenku8 书源（协议类型，KMP 适配器或纯 Swift 实现皆可）
+    private var wenku8Service: BookSourceService? {
+        services["文库8(在线)"]
     }
 
     var isWenku8LoggedIn: Bool {
@@ -1043,7 +1117,7 @@ final class AppStore: ObservableObject {
             format: "lightnovelreader-backup",
             version: 1,
             exportedAt: ISO8601DateFormatter().string(from: Date()),
-            wenku8Cookie: Wenku8Service.savedCookie,
+            wenku8Cookie: wenku8Service?.savedCookie,
             state: makeSnapshot()
         )
         let encoder = JSONEncoder()
@@ -1093,7 +1167,7 @@ final class AppStore: ObservableObject {
         readBookIDs = snapshot.readBookIDs
         lastReadAtByID = snapshot.lastReadAtByID
 
-        Wenku8Service.savedCookie = envelope.wenku8Cookie
+        services["文库8(在线)"]?.savedCookie = envelope.wenku8Cookie
 
         await reload()
     }

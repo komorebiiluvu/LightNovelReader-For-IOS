@@ -45,7 +45,7 @@ struct HomeExploreBlock: Codable {
 
 /// 一个书源 = 目录 + 章节 + 正文 + 搜索 + 探索。
 /// UI 只依赖这个协议；接入新书源时提供一个新的实现即可，换源无需改 UI。
-protocol BookSourceService {
+protocol BookSourceService: AnyObject {
     var name: String { get }
 
     /// 书源提供的完整书目（可返回空，表示该源无内置书目、靠探索/搜索拉取）
@@ -63,6 +63,23 @@ protocol BookSourceService {
     /// 搜索能力说明（如降级提示），nil 表示无
     var searchNotice: String? { get }
 
+    // MARK: - 登录能力（wenku8 类书源需登录态才能探索/搜索）
+
+    /// 是否已登录（不需要登录的书源默认返回 true）
+    var isLoggedIn: Bool { get }
+
+    /// 当前登录用户名（未登录/不适用返回 nil）
+    var loggedInUsername: String? { get }
+
+    /// 登录（不需要登录的书源为空实现）
+    func login(username: String, password: String) async throws
+
+    /// 退出登录（不需要登录的书源为空实现）
+    func logout()
+
+    /// 登录会话 cookie（持久化/恢复用；不需要登录的书源返回 nil）
+    var savedCookie: String? { get set }
+
     // MARK: - 探索能力（默认空实现，不支持的源返回空/抛错）
 
     /// 探索页「全部」板块的栏目列表；空数组表示该源无书库浏览能力
@@ -76,10 +93,28 @@ protocol BookSourceService {
 
     /// 探索页「分类」板块的标签列表
     func fetchTagList() async throws -> [String]
+
+    /// 标签 → 书库浏览栏目（tags.php?t= 分页）
+    func tagCategory(_ tag: String) -> ExploreCategory
+
+    /// 按 wenku8 aid 补全某本书的完整元数据（简介/作者/字数/更新时间等）
+    func fetchBookDetail(aid: Int) async throws -> Book
 }
 
 extension BookSourceService {
     var searchNotice: String? { nil }
+
+    // 登录能力默认实现：不需要登录
+    var isLoggedIn: Bool { true }
+    var loggedInUsername: String? { nil }
+    func login(username: String, password: String) async throws {}
+    func logout() {}
+    var savedCookie: String? {
+        get { nil }
+        set {}
+    }
+
+    // 探索能力默认实现：不支持
     var exploreCategories: [ExploreCategory] { [] }
     func fetchExplorePage(_ category: ExploreCategory, page: Int, sortSuffix: String) async throws -> (books: [Book], totalPages: Int) {
         throw BookSourceError.unreachable
@@ -88,6 +123,12 @@ extension BookSourceService {
         throw BookSourceError.unreachable
     }
     func fetchTagList() async throws -> [String] {
+        throw BookSourceError.unreachable
+    }
+    func tagCategory(_ tag: String) -> ExploreCategory {
+        ExploreCategory(id: "tag-\(tag)", title: tag, path: "/modules/article/tags.php", extraParams: "&t=\(tag)", supportsSort: true)
+    }
+    func fetchBookDetail(aid: Int) async throws -> Book {
         throw BookSourceError.unreachable
     }
 }

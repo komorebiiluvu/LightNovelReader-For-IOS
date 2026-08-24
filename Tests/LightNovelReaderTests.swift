@@ -78,3 +78,55 @@ final class ChapterContentBackwardCompatTests: XCTestCase {
         XCTAssertTrue(content.images.isEmpty)
     }
 }
+
+#if canImport(SharedKit)
+import SharedKit
+
+final class KmpExploreWiringTests: XCTestCase {
+    func testKmpAdapterProvidesUpstreamExploreCategories() {
+        let adapter = KmpBookSourceAdapter()
+        let categories = adapter.exploreCategories
+        // 对齐上游 6 个栏目（轻小说列表/热门/动画化/今日更新/新书一览/完结全本）
+        XCTAssertEqual(categories.count, 6, "KMP 适配器应提供上游的 6 个探索栏目")
+        let titles = Set(categories.map(\.title))
+        XCTAssertTrue(titles.contains("轻小说列表"), "应包含「轻小说列表」栏目")
+        XCTAssertTrue(titles.contains("热门轻小说"), "应包含「热门轻小说」栏目")
+        XCTAssertTrue(titles.contains("完结全本"), "应包含「完结全本」栏目")
+    }
+
+    func testKmpAdapterProvidesUpstreamTagList() async throws {
+        let adapter = KmpBookSourceAdapter()
+        let tags = try await adapter.fetchTagList()
+        XCTAssertGreaterThanOrEqual(tags.count, 48, "KMP 适配器应提供上游硬编码的 48 个标签")
+        XCTAssertTrue(tags.contains("校园"))
+        XCTAssertTrue(tags.contains("NTR"))
+    }
+
+    func testKmpAdapterTagCategory() {
+        let adapter = KmpBookSourceAdapter()
+        let cat = adapter.tagCategory("校园")
+        XCTAssertEqual(cat.id, "tag-校园")
+        XCTAssertTrue(cat.path.contains("tags.php"), "标签栏目应指向 tags.php")
+        XCTAssertTrue(cat.supportsSort, "标签栏目应支持服务端排序")
+    }
+}
+#endif
+
+#if canImport(SharedKit)
+import SharedKit
+
+/// 验证 KMP Gbk 完整解码表（含 GBK 扩展繁体/日文汉字）
+final class GbkDecodeTests: XCTestCase {
+    func testDecodeFullGbkChars() {
+        // 「不吉波普系列」gb18030 字节
+        let result = GbkBridge.shared.decodeHex(hex: "B2BBBCAAB2A8C6D5CFB5C1D0")
+        XCTAssertEqual(result, "不吉波普系列", "完整 GBK 表应正确解码书名")
+    }
+
+    func testDecodeGbkExtChars() {
+        // 繁体「體」(GBK 扩展 0xF3 0x77)
+        let result = GbkBridge.shared.decodeHex(hex: "F377")
+        XCTAssertEqual(result, "體", "GBK 扩展繁体字应正确解码")
+    }
+}
+#endif

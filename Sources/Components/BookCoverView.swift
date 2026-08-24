@@ -71,19 +71,34 @@ struct CoverImageView: View {
     @State private var failed = false
 
     var body: some View {
-        Group {
-            if let imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                placeholder
+        GeometryReader { geo in
+            Group {
+                if let imageData, let uiImage = decode(imageData, size: geo.size) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    placeholder
+                }
             }
+            .animation(.easeOut(duration: 0.18), value: imageData)
         }
-        .animation(.easeOut(duration: 0.18), value: imageData)
         .task(id: urlString) {
             await load()
         }
+    }
+
+    /// 按视图实际渲染尺寸解码（@3x 屏幕 1pt ≈ 3px）。
+    /// 内存缓存已按 420px 下采样，这里对详情页等大尺寸场景再按需放大/缩小解码，
+    /// 保证小列表不放大原图、大封面不清。
+    private func decode(_ data: Data, size: CGSize) -> UIImage? {
+        guard !data.isEmpty, size.width > 0, size.height > 0 else { return nil }
+        let scale = UIScreen.main.scale
+        let maxPixel = min(max(size.width, size.height) * scale, CoverImageCache.downsampledMaxPixel)
+        if let downsampled = CoverImageCache.downsample(data, maxPixel: maxPixel) {
+            return UIImage(data: downsampled)
+        }
+        return UIImage(data: data)
     }
 
     private func load() async {

@@ -114,6 +114,12 @@ final class Wenku8Service: BookSourceService {
         }
     }
 
+    /// 登录会话 cookie（协议要求，转发到 static 存储）
+    var savedCookie: String? {
+        get { Self.savedCookie }
+        set { Self.savedCookie = newValue }
+    }
+
     private static func loginErrorMessage(in html: String) -> String? {
         let plain = html
             .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
@@ -182,8 +188,8 @@ final class Wenku8Service: BookSourceService {
     }
 
     /// 标签 → 对应的书库浏览栏目
-    static func tagCategory(_ tag: String) -> ExploreCategory {
-        let encoded = gb2312PercentEncoded(tag) ?? tag
+    func tagCategory(_ tag: String) -> ExploreCategory {
+        let encoded = Self.gb2312PercentEncoded(tag) ?? tag
         return ExploreCategory(
             id: "tag-\(tag)",
             title: tag,

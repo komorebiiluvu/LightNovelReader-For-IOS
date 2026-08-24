@@ -211,24 +211,48 @@ struct ReaderView: View {
         "\(chapter)#\(content?.paragraphs.count ?? 0)#\(Int(fontSize))#\(Int(lineSpacing))#\(prefs.fontFamily.rawValue)#\(prefs.bold)#\(Int(prefs.marginLeft))#\(Int(prefs.marginRight))#\(Int(prefs.marginTop))#\(Int(prefs.marginBottom))#\(Int(size.width))x\(Int(size.height))"
     }
 
+    /// 后台分页任务：布局参数或章节内容变化时取消旧的、只保留最新一次
+    @State private var paginationTask: Task<Void, Never>?
+
     private func computePages(size: CGSize) {
+        paginationTask?.cancel()
+        // 可用区域 = 屏幕 - 四边自定义边距 - 顶栏缓冲(16) - 页首章节标题行(31)
+        let width = max(size.width - prefs.marginLeft - prefs.marginRight, 100)
+        let height = max(size.height - prefs.marginTop - prefs.marginBottom - 47, 100)
+        let paragraphs = self.paragraphs
+        let fontSize = self.fontSize
+        let lineSpacing = self.lineSpacing
+        let family = prefs.fontFamily
+        let bold = prefs.bold
+
+        paginationTask = Task.detached(priority: .userInitiated) {
+            // 分页测量在主线程外执行（NSString boundingRect 对读操作线程安全），
+            // 避免设置面板拖动滑杆时整页卡顿；期间沿用旧分页继续显示
+            let result = ReaderPagination.paginate(
+                paragraphs: paragraphs,
+                width: width,
+                height: height,
+                fontSize: fontSize,
+                lineSpacing: lineSpacing,
+                family: family,
+                bold: bold
+            )
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard !Task.isCancelled else { return }
+                applyPagination(result, size: size)
+            }
+        }
+    }
+
+    @MainActor
+    private func applyPagination(_ result: [[String]], size: CGSize) {
         // 记录重排前的阅读进度比例（字号/边距等变化导致页数变化时，按比例校准位置）
         let oldTotal = totalPages
         let oldPage = pageIndex
         let progressRatio = oldTotal > 0 ? Double(oldPage) / Double(oldTotal) : 0
 
-        // 可用区域 = 屏幕 - 四边自定义边距 - 顶栏缓冲(16) - 页首章节标题行(31)
-        let width = max(size.width - prefs.marginLeft - prefs.marginRight, 100)
-        let height = max(size.height - prefs.marginTop - prefs.marginBottom - 47, 100)
-        laidPages = ReaderPagination.paginate(
-            paragraphs: paragraphs,
-            width: width,
-            height: height,
-            fontSize: fontSize,
-            lineSpacing: lineSpacing,
-            family: prefs.fontFamily,
-            bold: prefs.bold
-        )
+        laidPages = result
 
         // 跨章连翻到上一章末页时，跳到最后一页
         if pendingAtEnd {

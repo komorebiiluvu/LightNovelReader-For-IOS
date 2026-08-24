@@ -52,7 +52,7 @@ struct SettingsView: View {
             Section("强调色") {
                 ForEach(AccentTheme.allCases) { accent in
                     Button {
-                        accentTheme = accent.rawValue  // @AppStorage 自动持久化并触发全局重绘
+                        accentTheme = accent.rawValue
                     } label: {
                         HStack {
                             Circle()
@@ -84,7 +84,7 @@ struct SettingsView: View {
             } header: {
                 Text("数据源")
             } footer: {
-                Text("「文库8(在线)」为真实书源（真实封面/目录/正文，登录后可全站搜索）。切换数据源会重新拉取书目；书籍详情页的“换源”只影响那一本书。")
+                Text("「文库8(在线)」为真实书源，登录后可全站搜索。")
             }
 
             Section("阅读数据") {
@@ -127,7 +127,7 @@ struct SettingsView: View {
             } header: {
                 Text("备份与恢复")
             } footer: {
-                Text("备份包含书架、阅读进度、设置、阅读统计与 wenku8 登录态；离线缓存不含在内，导入后可重新下载。导入会覆盖当前全部数据。")
+                Text("备份含书架、进度、设置、统计与登录态；不含离线缓存。")
             }
 
             Section {
@@ -141,7 +141,7 @@ struct SettingsView: View {
             } header: {
                 Text("离线与存储")
             } footer: {
-                Text("在书籍详情页「缓存全书」后即可离线阅读；导出的 EPUB / TXT 可用其他阅读器打开。")
+                Text("详情页「缓存全书」后可离线阅读。")
             }
 
             Section {
@@ -188,7 +188,7 @@ struct SettingsView: View {
             } header: {
                 Text("关于")
             } footer: {
-                Text("本应用为界面原型，书籍内容版权归原作者及站点所有；书架、阅读进度、统计与离线缓存均在本机持久化。")
+                Text("本应用为界面原型，书籍内容版权归原作者及站点所有。")
             }
         }
         .navigationTitle("设置")

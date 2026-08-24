@@ -68,8 +68,22 @@ struct PageCurlReaderView: UIViewControllerRepresentable {
         /// 动画进行中锁：翻页动画未完成时忽略新的输入，防止中断
         private var isAnimating = false
 
+        /// 页面 VC 复用缓存：翻页时 UIPageViewController 会反复请求前/后页，
+        /// 每次新建 UIHostingController + SwiftUI 视图很贵（老设备上翻页掉帧的主因）。
+        /// 只缓存相邻 3 页（一屏左右），渲染签名变化时清空重建，保证设置即时生效。
+        private var pageVCCache: [Int: PageHostController] = [:]
+        private let maxPageVCCache = 3
+
         init(_ parent: PageCurlReaderView) {
             self.parent = parent
+        }
+
+        private func cacheKey(_ index: Int) -> Int { index }
+
+        private func purgeCacheIfRenderChanged() {
+            if lastRenderToken != parent.renderToken {
+                pageVCCache.removeAll()
+            }
         }
 
         // MARK: - 统一翻页（CATransaction 缩短动画时长）
@@ -129,6 +143,8 @@ struct PageCurlReaderView: UIViewControllerRepresentable {
 
         func pageVC(at index: Int) -> PageHostController? {
             guard index >= 0, index < parent.pageCount else { return nil }
+            purgeCacheIfRenderChanged()
+            if let cached = pageVCCache[index] { return cached }
             let host = PageHostController()
             host.index = index
             host.pageBackground = parent.background
@@ -138,6 +154,12 @@ struct PageCurlReaderView: UIViewControllerRepresentable {
             host.content = contentVC
             host.view.backgroundColor = parent.background
             host.view.isOpaque = true
+            pageVCCache[index] = host
+            // LRU：只保留最近请求的 3 页，翻页到远处时旧页释放
+            if pageVCCache.count > maxPageVCCache {
+                let oldest = pageVCCache.min(by: { $0.key < $1.key })?.key
+                if let oldest { pageVCCache[oldest] = nil }
+            }
             return host
         }
 

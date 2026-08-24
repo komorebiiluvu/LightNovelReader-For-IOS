@@ -219,7 +219,7 @@ struct ExploreView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], alignment: .leading, spacing: 8) {
                     ForEach(store.tagList, id: \.self) { tag in
                         NavigationLink {
-                            ExploreListView(category: Wenku8Service.tagCategory(tag))
+                            ExploreListView(category: store.tagCategory(tag))
                         } label: {
                             Text(tag)
                                 .font(.subheadline)

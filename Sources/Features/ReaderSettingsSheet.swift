@@ -7,6 +7,14 @@ struct ReaderSettingsSheet: View {
     @Binding var preferences: ReaderPreferences
 
     @State private var detent: PresentationDetent = .medium
+    /// 滑杆/步进器防抖：拖动过程中只更新本地值，停顿后才写回 preferences 触发重排，
+    /// 避免每动一格就全量分页 + 全量 JSON 持久化（老设备上拖动行距滑杆会卡）
+    @State private var pendingLineSpacing: CGFloat?
+    @State private var pendingMarginLeft: CGFloat?
+    @State private var pendingMarginRight: CGFloat?
+    @State private var pendingMarginTop: CGFloat?
+    @State private var pendingMarginBottom: CGFloat?
+    @State private var debounceTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -69,23 +77,23 @@ struct ReaderSettingsSheet: View {
 
                     section("字号") {
                         HStack(spacing: 18) {
-                            stepButton("-") { preferences.fontSize = max(13, preferences.fontSize - 1) }
+                            stepButton("-") { adjustFontSize(-1) }
                             Text("\(Int(preferences.fontSize))pt")
                                 .font(.headline)
                                 .frame(minWidth: 54)
-                            stepButton("+") { preferences.fontSize = min(28, preferences.fontSize + 1) }
+                            stepButton("+") { adjustFontSize(1) }
                         }
                     }
 
                     section("行距") {
-                        sliderRow("行距", value: $preferences.lineSpacing, range: 0...20, step: 1)
+                        sliderRow("行距", value: debouncedBinding(get: { pendingLineSpacing ?? preferences.lineSpacing }, set: { pendingLineSpacing = $0; scheduleDebouncedCommit() }), range: 0...20, step: 1)
                     }
 
                     section("边距") {
-                        sliderRow("左边距", value: $preferences.marginLeft, range: 0...80, step: 2)
-                        sliderRow("右边距", value: $preferences.marginRight, range: 0...80, step: 2)
-                        sliderRow("上边距", value: $preferences.marginTop, range: 0...120, step: 2)
-                        sliderRow("下边距", value: $preferences.marginBottom, range: 0...120, step: 2)
+                        sliderRow("左边距", value: debouncedBinding(get: { pendingMarginLeft ?? preferences.marginLeft }, set: { pendingMarginLeft = $0; scheduleDebouncedCommit() }), range: 0...80, step: 2)
+                        sliderRow("右边距", value: debouncedBinding(get: { pendingMarginRight ?? preferences.marginRight }, set: { pendingMarginRight = $0; scheduleDebouncedCommit() }), range: 0...80, step: 2)
+                        sliderRow("上边距", value: debouncedBinding(get: { pendingMarginTop ?? preferences.marginTop }, set: { pendingMarginTop = $0; scheduleDebouncedCommit() }), range: 0...120, step: 2)
+                        sliderRow("下边距", value: debouncedBinding(get: { pendingMarginBottom ?? preferences.marginBottom }, set: { pendingMarginBottom = $0; scheduleDebouncedCommit() }), range: 0...120, step: 2)
                     }
 
                     section("翻页方式") {
@@ -191,6 +199,39 @@ struct ReaderSettingsSheet: View {
                 .font(.caption.monospacedDigit())
                 .frame(width: 32, alignment: .trailing)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    /// 把防抖中的本地值与已生效值合并成展示用的 Binding
+    private func debouncedBinding(get: @escaping () -> CGFloat, set: @escaping (CGFloat) -> Void) -> Binding<CGFloat> {
+        Binding(get: get, set: set)
+    }
+
+    /// 拖动停顿 300ms 后把本地待写值一次性落回 preferences（触发一次分页）
+    private func scheduleDebouncedCommit() {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                if let v = pendingLineSpacing { preferences.lineSpacing = v; pendingLineSpacing = nil }
+                if let v = pendingMarginLeft { preferences.marginLeft = v; pendingMarginLeft = nil }
+                if let v = pendingMarginRight { preferences.marginRight = v; pendingMarginRight = nil }
+                if let v = pendingMarginTop { preferences.marginTop = v; pendingMarginTop = nil }
+                if let v = pendingMarginBottom { preferences.marginBottom = v; pendingMarginBottom = nil }
+            }
+        }
+    }
+
+    /// 字号步进：长按连点时同样防抖（300ms），避免连点 N 次触发 N 次分页
+    private func adjustFontSize(_ delta: CGFloat) {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                preferences.fontSize = min(max(13, preferences.fontSize + delta), 28)
+            }
         }
     }
 

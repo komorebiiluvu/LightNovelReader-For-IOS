@@ -13,6 +13,8 @@
 
 LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 Swift 与 SwiftUI 编写，支持 iPhone 与 iPad。界面与交互参考 Android 版 [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader) 实现。
 
+**数据层采用 Kotlin Multiplatform（KMP）**：从上游项目移植数据模型与 wenku8 抓取器，编译为 `SharedKit` 框架供 iOS 调用，实现与上游 Android 版**同源的数据层**（书 ID、组件 JSON 格式完全一致），便于跟随上游更新与数据互通。
+
 > ### ❤️ 特别鸣谢
 >
 > **本项目深受开源项目 [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader) 的启发与指引，没有它就没有本项目。**
@@ -26,6 +28,27 @@ LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 Swift �
 - 离线缓存：全书下载，断网可读
 - 导出：EPUB / TXT
 - 阅读统计：时长累计与热力图
+
+## 技术架构
+
+```
+┌─────────────────────────────────────────────┐
+│  SwiftUI UI 层（书架 / 探索 / 设置 / 阅读器）│
+├─────────────────────────────────────────────┤
+│  BookSourceService 协议（登录/搜索/探索/目录）│
+├─────────────────────────────────────────────┤
+│  KmpBookSourceAdapter  ←→  SharedKit (KMP)  │
+│  （Swift 桥接，未编译 SharedKit 时回退 Swift）│
+├─────────────────────────────────────────────┤
+│  shared/ Kotlin Multiplatform 模块           │
+│  模型 + wenku8 抓取器（对齐上游 :api）       │
+└─────────────────────────────────────────────┘
+```
+
+- **数据模型**：`BookInformation`/`BookVolumes`/`ChapterContent`/`UserReadingData` 等，
+  包名与上游 `:api` 模块一致，同步上游更新时可直接 diff 复制。
+- **wenku8 抓取器**：Ktor(Darwin) + Ksoup + 手写 GBK 解码（Kotlin/Native 无内置 GB18030）。
+- **文档**：[SYNC.md](SYNC.md)（上游同步手册）、[docs/KMP-TROUBLESHOOTING.md](docs/KMP-TROUBLESHOOTING.md)（踩坑记录）、[CHANGELOG.md](CHANGELOG.md)（版本记录）。
 
 ## 软件截图
 

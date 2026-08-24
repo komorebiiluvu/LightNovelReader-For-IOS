@@ -15,3 +15,9 @@ xcuserdata/
 # 编译产物
 *.ipa
 *.dSYM
+
+# KMP 构建产物（由 scripts/build-sharedkit.sh 重建）
+shared/build/
+shared/.gradle/
+shared/.kotlin/
+Frameworks/

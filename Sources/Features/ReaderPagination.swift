@@ -53,9 +53,39 @@ enum ReaderFontFamily: String, CaseIterable, Identifiable, Codable {
 
 /// 阅读器翻页分页：TextKit 实测文字高度装页。
 /// 段落放不下时会把段首切下来填满当前页（段内断页），避免页尾大片空白。
+///
+/// 分页结果是纯函数：同一 (段落、容器、字号、行距、字体、字重) 永远得到相同页布局。
+/// 设置面板的滑杆/步进器每动一格都会触发一次分页，主线程逐字测量成本高，
+/// 所以用 NSCache 按参数签名缓存计算结果，字号/行距微调（改回上一档）时直接命中。
 enum ReaderPagination {
     /// 页内段落之间的间距，需与 ReaderView 页面 VStack 的 spacing 一致
     private static let paragraphSpacing: CGFloat = 16
+
+    /// 分页结果缓存。键 = 参数签名；值 = 页布局。
+    /// 容量按"最近几次分页"够用即可：切换章节、拖动滑杆时都能命中。
+    private static let pageCache: NSCache<NSString, NSArray> = {
+        let cache = NSCache<NSString, NSArray>()
+        cache.countLimit = 24
+        return cache
+    }()
+
+    /// 生成分页缓存键：所有影响布局的参数都进键（含段落内容哈希，保证内容变了键就变）
+    private static func cacheKey(
+        paragraphs: [String],
+        width: CGFloat,
+        height: CGFloat,
+        fontSize: CGFloat,
+        lineSpacing: CGFloat,
+        family: ReaderFontFamily,
+        bold: Bool
+    ) -> String {
+        var hasher = Hasher()
+        for paragraph in paragraphs {
+            hasher.combine(paragraph)
+        }
+        let contentHash = hasher.finalize()
+        return "\(contentHash)#\(Int(width))x\(Int(height))#\(Int(fontSize))#\(Int(lineSpacing))#\(family.rawValue)#\(bold)"
+    }
 
     static func resolveFont(family: ReaderFontFamily, bold: Bool, size: CGFloat) -> ReaderFont {
         let base: ReaderFont
@@ -98,6 +128,33 @@ enum ReaderPagination {
         bold: Bool = false
     ) -> [[String]] {
         guard !paragraphs.isEmpty, width > 0, height > 0 else { return [] }
+
+        // 缓存命中直接返回，避免重复测量
+        let key = cacheKey(
+            paragraphs: paragraphs, width: width, height: height,
+            fontSize: fontSize, lineSpacing: lineSpacing, family: family, bold: bold
+        )
+        if let cached = pageCache.object(forKey: key as NSString) as? [[String]] {
+            return cached
+        }
+
+        let result = computePages(
+            paragraphs: paragraphs, width: width, height: height,
+            fontSize: fontSize, lineSpacing: lineSpacing, family: family, bold: bold
+        )
+        pageCache.setObject(result as NSArray, forKey: key as NSString)
+        return result
+    }
+
+    private static func computePages(
+        paragraphs: [String],
+        width: CGFloat,
+        height: CGFloat,
+        fontSize: CGFloat,
+        lineSpacing: CGFloat,
+        family: ReaderFontFamily,
+        bold: Bool
+    ) -> [[String]] {
         let font = resolveFont(family: family, bold: bold, size: fontSize)
         let style = NSMutableParagraphStyle()
         style.lineSpacing = lineSpacing
