@@ -37,11 +37,11 @@ LightNovelReader (iOS) — это открытая читалка ранобэ, 
 
 ## Загрузка
 
-Скачайте последний релиз с [GitHub Releases](https://github.com/komorebiiluvu/LightNovelReader-For-IOS/releases/latest). Релизы — это неподписанные `.ipa`-файлы: подпишите их самостоятельно перед установкой (например, с помощью Sideloadly, AltStore или аналогичных инструментов).
+Скачайте последний релиз с [GitHub Releases](https://github.com/komorebiiluvu/LightNovelReader/releases/latest). Релизы — это неподписанные `.ipa`-файлы: подпишите их самостоятельно перед установкой (например, с помощью Sideloadly, AltStore или аналогичных инструментов).
 
 ## Поддержка
 
-- Сообщите об ошибке или предложите функцию через [Issues](https://github.com/komorebiiluvu/LightNovelReader-For-IOS/issues/new/choose)
+- Сообщите об ошибке или предложите функцию через [Issues](https://github.com/komorebiiluvu/LightNovelReader/issues/new/choose)
 - Свяжитесь с автором: **QQ: `3662909214`**
 
 ## Лицензия
