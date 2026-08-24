@@ -291,7 +291,136 @@ GB2312 常用字（3755 个），书名里的二级汉字（吉/波/普/浩/平�
 
 ---
 
-## 六、验证工具速查
+## 六、真机实战排错（V1.1.0 迭代新增）
+
+> 模拟器全绿、真机翻车的坑。**模拟器验证 ≠ 真机可用**——这批坑全部是真机实测才暴露的。
+
+### 20. GBK 表生成的"分号 bug"：真机全乱码，模拟器却"大部分正常"
+
+**现象**：真机上探索/详情/书名几乎全乱码（带框问号 U+FFFD），但模拟器只有个别字乱码（PUA）。
+
+**原因**：生成 GBK 表（23940 条）时压成"区段字符串"，**每行切分丢了分号**，拼接后变成
+`...20014,2" + "33103,...`（缺 `;`）→ `233103` 被当成巨大长度 → 表残缺。
+模拟器碰巧覆盖常用字（"大部分正常"），真机严格解析就全崩。
+
+**解法**：**每段必须带分号结尾**（含行尾），并用 python 独立验证还原出完整 23940 条。
+教训：**大字符串生成脚本的分隔符 bug 极难察觉，生成后必须程序化验证条目数**。
+
+**涉及文件**：`shared/.../api/util/GbkTable.kt`（生成逻辑）
+
+### 21. Ksoup `text()` 对 `<td>`（inline）之间不加空格 → 字段拼接成一长串
+
+**现象**：详情页作者/文库/状态/最后更新每行都是一长串
+（如作者显示"上远野浩平文章状态：连载中最后更新：..."）。
+
+**原因**：Ksoup 的 `text()` 只对 block 元素（div/p/table/br）加空格，**`<td>` 是 inline 不加**。
+`<td>小说作者：上远野浩平</td><td>文章状态：...</td>` 连在一起，按空格/全角空格截断截不断。
+
+**解法**：不能靠 `text()` 拼接 + 空格截断。改用**DOM 定位**：
+`td:contains(小说作者)` 取 td 文本，去掉前缀。和简介的 DOM 方案统一。
+
+**涉及文件**：`shared/.../wenku8/Wenku8DataSource.kt`
+
+### 22. 简介显示"最近章节/插图"或吞入整个网页
+
+**现象**：简介显示"第二十六卷 ...插图..."（章节链接文字），或简介后面跟着
+"阅读 小说目录 收藏 ... TXT下载 ... 同分类推荐 ... 年份列表"（整个网页）。
+
+**原因**：
+1. "内容简介："标签**后隔着 `<br>` 才是简介 span**，sibling 遍历/`selectFirst(span[14px])` 取到了
+   **"最近章节"的 span**（含 `<a>` 链接，文字是章节名，可能含"插图"）。
+2. 文本截断用"作品Tags/最后更新"等 key——**简介后没有这些 key 时截到页面末尾**，吞入按钮区/推荐区。
+
+**解法**：DOM 定位——`span:contains(内容简介)` 找 label，**取其后第一个不含 `<a>` 的 span**。
+简介正文无链接，"最近章节"有链接，天然区分。
+
+**涉及文件**：`shared/.../wenku8/Wenku8DataSource.kt`（`extractDescription`）
+
+### 23. 正文不分段（密密麻麻一整页）
+
+**现象**：正文从头到尾密密麻麻，没有段落间隔。
+
+**原因**：wenku8 正文用 **`<br>` 分段**（无 `<p>`），但解析循环只处理 `divimage`，
+**`<br>` 被忽略** → 所有文本累积成一段。
+
+**解法**：解析时遇到 `<br>` 元素**切分段落**（flush 当前文本成一段）。
+注意 `ContentBuilder.simpleText` 内部会跳过空白，连续 `<br>` 不会产生空段。
+
+**涉及文件**：`shared/.../wenku8/Wenku8DataSource.kt`（`getChapterContent`）
+
+### 24. 阅读/缓存全书闪退：JsonObject 跨 Swift 边界桥接崩溃
+
+**现象**：真机点"开始阅读"或"缓存全书"直接闪退。崩溃报告堆栈：
+`_unconditionallyBridgeFromObjectiveC NSDictionary` 在 `fetchContent` 桥接 `ChapterContent` 时。
+
+**原因**：Kotlin `ChapterContent.content` 是 `JsonObject`（导出为 NSDictionary），
+Swift 从 completion handler 拿它时**强制桥接崩溃**（真机 iOS 17 更严格，模拟器 iOS 26 不崩）。
+
+**解法**：**不让 JsonObject 跨 Swift 边界**——Kotlin 侧新增 `getChapterContentFlat`，
+直接解析好段落/图片/标题，返回纯 String 类型。Swift 不再碰 JsonObject。
+
+**涉及文件**：`shared/.../Wenku8DataSourceApi.kt`（`ChapterContentFlat`）、`KmpBookSourceAdapter.swift`
+
+### 25. Kotlin `description` 属性导出到 Swift 变 `description_`
+
+**现象**：简介显示英文 + 乱码（其实是 `BookInformation(...)` 的 toString）。
+
+**原因**：Kotlin 的 `description` 属性和 `NSObject.description` 冲突，
+Kotlin/Native 导出时**自动改名成 `description_`**。Swift 侧 `info.description`
+取到的是对象的 `description`（toString）。
+
+**解法**：Swift 侧用 **`info.description_`**。教训：**Kotlin 属性名和 NSObject 冲突时会改名**，
+Swift 调用前先查 `SharedKit.h` 确认实际属性名。
+
+**涉及文件**：`Sources/Services/KmpBookSourceAdapter.swift`
+
+### 26. Swift 适配器 `!` 强解包崩溃
+
+**现象**：KMP 返回 nil 时（解析失败），`continuation.resume(returning: content!)` 直接崩。
+
+**原因**：completion handler 里对可选值强解包，KMP 失败路径返回 nil 就崩。
+
+**解法**：所有 `xxx!` 改成 `guard let xxx else { resume(throwing:) ; return }`。
+
+**涉及文件**：`Sources/Services/KmpBookSourceAdapter.swift`
+
+### 27. 阅读设置（背景/字体/边距）不即时生效，要翻页才刷新
+
+**现象**：改背景后当前页还是旧背景（且字体先变导致米白底白字看不清），翻页才生效。
+
+**原因**：翻页视图（PageCurlReaderView）缓存页面 VC，只有翻页请求新页才 purge 重建。
+`renderToken` 原来只含背景/分页版本，**不含字体/边距/字重/字号**。
+
+**解法**：
+1. `renderToken` 包含**全部**阅读设置参数（背景/字体/字号/行距/字重/边距/模式）；
+2. `PageCurlReaderView` 加 `.id("\(chapter)#\(renderToken)")`——设置变化时整体重建。
+
+**涉及文件**：`Sources/Features/ReaderView.swift`
+
+### 28. 真机排查无日志：需要崩溃报告功能
+
+**现象**：真机闪退/异常，开发机（云 Mac）连不上真机，无法看日志。
+
+**解法**：app 内置 `CrashReporter`：
+- `NSSetUncaughtExceptionHandler` 捕获 NSException + 信号处理（SIGABRT/SIGSEGV 等）；
+- 崩溃写文件到 `Documents/CrashReports/`（含设备/版本/堆栈）；
+- 设置页"崩溃报告"入口可导出 txt（分享面板）。
+配合 `NSLog`（Kotlin/Native 的 NSLog 进系统日志，`println` 不进）定位。
+
+**涉及文件**：`Sources/Services/CrashReporter.swift`、设置页
+
+### 29. 详情页字段解析：fieldAfter（文本）→ DOM 定位（td:contains）
+
+**现象**：fieldAfter 依赖 `soup.text()` 拼接 + key 截断列表，wenku8 改格式要维护列表。
+
+**解法**：统一改用 DOM 定位——`td:contains(小说作者)` / `td:contains(文库分类)` 等，
+取 td 文本去前缀。和简介 DOM 方案一致，不依赖 text() 拼接，更稳。
+
+**涉及文件**：`shared/.../wenku8/Wenku8DataSource.kt`
+
+---
+
+## 七、验证工具速查
 
 ```bash
 # Kotlin 符号是否静态链接进主二进制（0 = 没链接）

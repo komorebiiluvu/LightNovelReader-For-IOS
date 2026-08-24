@@ -12,6 +12,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.HttpHeaders
+import platform.Foundation.NSLog
 import io.nightfish.lightnovelreader.api.util.Gbk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -100,19 +101,26 @@ class Wenku8Client(
                 )
                 header(HttpHeaders.ContentType, "application/x-www-form-urlencoded")
             }
+            val status = response.status.value
             val bytes = response.bodyAsBytes()
             val html = Gbk.decodeToString(bytes)
             val cookies = response.headers[HttpHeaders.SetCookie].orEmpty()
+            // 诊断：真机排查登录失败用（Console.app / 系统日志可见）
+            NSLog("[Wenku8Login] status=$status bytes=${bytes.size} setCookie=${cookies.take(200)}")
             // 从 Set-Cookie 里收集 jieqi 开头的 cookie
             val jieqiCookies = parseSetCookies(cookies)
+            NSLog("[Wenku8Login] parsed=${jieqiCookies.joinToString("; ").take(120)}")
             if (jieqiCookies.any { it.startsWith("jieqiUserInfo") }) {
                 savedCookie = jieqiCookies.sorted().joinToString("; ")
+                NSLog("[Wenku8Login] SUCCESS")
                 return@runCatching "ok"
             }
             val error = loginErrorMessage(html)
             if (error != null) {
+                NSLog("[Wenku8Login] error=$error")
                 return@runCatching error
             }
+            NSLog("[Wenku8Login] no jieqi cookie, html head=${html.take(150)}")
             return@runCatching "登录失败：无法解析响应"
         }.fold(
             onSuccess = { if (it == "ok") Result.success("ok") else Result.failure(Exception(it)) },
@@ -121,10 +129,10 @@ class Wenku8Client(
     }
 
     private fun parseSetCookies(header: String): List<String> {
-        return header.split(",").mapNotNull { seg ->
-            val part = seg.substringBefore(";").trim()
-            part.takeIf { it.startsWith("jieqi") }
-        }
+        // Set-Cookie 头里 expires 日期含字面逗号（如 "expires=Tue, 24-Aug-2027"），
+        // 不能用 split(",")。改为正则提取所有 "jieqiXXX=值" 片段（值到 ; 或行尾为止）。
+        val regex = Regex("jieqi[A-Za-z0-9_]*=[^;,\\s]+")
+        return regex.findAll(header).map { it.value }.toList()
     }
 
     private fun loginErrorMessage(html: String): String? {

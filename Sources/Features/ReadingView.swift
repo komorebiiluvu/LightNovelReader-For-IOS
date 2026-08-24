@@ -101,6 +101,15 @@ private struct ReadingRow: View {
     let book: Book
     let onContinue: () -> Void
 
+    /// 第一小行：作者 · 连载状态
+    private var bookSubtitle: String {
+        let status = book.isCompleted == true ? "已完结" : (book.isCompleted == false ? "连载中" : "")
+        let author = book.author.trimmingCharacters(in: .whitespaces)
+        if author.isEmpty { return status }
+        if status.isEmpty { return author }
+        return "\(author) · \(status)"
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             NavigationLink {
@@ -117,7 +126,7 @@ private struct ReadingRow: View {
                             .foregroundStyle(.primary)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
-                        Text("\(book.author) · 读到第 \(book.lastChapter) 章")
+                        Text(bookSubtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)

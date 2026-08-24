@@ -47,7 +47,8 @@ class Wenku8DataSource(
             return Result.failure(WebRequestError("网络请求失败", it.message ?: "网络错误"))
         }
         val soup = Ksoup.parse(html)
-        val titleEl = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[1]/tbody/tr[1]/td/table/tbody/tr/td[1]/span/b")
+        // 标题：详情页嵌套 table 里的第一个 <b>（真实页面无固定层级，用宽松选择器）
+        val titleEl = soup.selectFirst("#content b")
         val titleText = titleEl?.text() ?: return Result.failure(WebRequestError("解析错误", "无法解析该书本的信息(id=$id)"))
         if (soup.text().contains("因版权问题")) {
             return Result.failure(WebRequestError("版权错误", "由于「$titleText」为Wenku8上具有版权文件的书籍的章节, 我们无法提供其数据"))
@@ -55,18 +56,25 @@ class Wenku8DataSource(
         val titleGroup = titleRegex.find(titleText)?.groups
         val title = titleGroup?.get(1)?.value ?: titleText
         val subtitle = titleGroup?.get(2)?.value ?: ""
-        val coverUrl = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[2]/tbody/tr/td[1]/img")?.attr("src")
-        val author = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[1]/tbody/tr[2]/td[2]")?.text()?.replace("小说作者：", "") ?: ""
-        val description = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[2]/tbody/tr/td[2]/span[6]")?.text() ?: ""
-        val tags = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[2]/tbody/tr/td[2]/span[1]/b")
-            ?.text()?.replace("作品Tags：", "")?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
-        val publishingHouse = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[1]/tbody/tr[2]/td[1]")?.text()?.replace("文库分类：", "") ?: ""
-        val wordCount = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[1]/tbody/tr[2]/td[5]")
-            ?.text()?.replace("全文长度：", "")?.replace("字", "")?.trim()?.toIntOrNull()?.let { WordCount(it) }
-        val lastUpdated = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[1]/tbody/tr[2]/td[4]")
-            ?.text()?.replace("最后更新：", "")?.trim()
-        val isComplete = KsoupXpath.selectFirstXpath(soup, "//*[@id=\"content\"]/div[1]/table[1]/tbody/tr[2]/td[3]")
-            ?.text()?.contains("已完结") == true
+
+        // 封面：content 区域里的图片（img.wenku8.com 或 /image/ 路径）
+        val coverUrl = soup.selectFirst("#content img[src*='wenku8.com'], #content img[src*='/image/']")?.attr("src")
+
+        // 信息区 DOM 定位：找含「key：」的 td，取 value（与简介 DOM 方案一致，不依赖 text() 拼接）
+        fun fieldValue(label: String): String {
+            val td = soup.selectFirst("#content td:contains($label)") ?: return ""
+            val text = td.text()
+            val idx = text.indexOf(label)
+            if (idx < 0) return ""
+            return text.substring(idx + label.length).trim().removeSuffix("字")
+        }
+        val author = fieldValue("小说作者：").ifEmpty { fieldValue("小说作者:") }
+        val publishingHouse = fieldValue("文库分类：").ifEmpty { fieldValue("文库分类:") }
+        val isComplete = fieldValue("文章状态：").contains("已完结")
+        val wordCount = fieldValue("全文长度：").toIntOrNull()?.let { WordCount(it) }
+        val lastUpdated = fieldValue("最后更新：").trim().ifEmpty { null }
+        val description = extractDescription(soup)
+
         return Result.success(
             BookInformation(
                 id = id,
@@ -75,13 +83,31 @@ class Wenku8DataSource(
                 coverUrl = coverUrl,
                 author = author,
                 description = description,
-                tags = tags,
+                tags = soup.selectFirst("#content span:contains(作品Tags)")?.text()
+                    ?.replace("作品Tags：", "")?.split(" ")?.filter { it.isNotBlank() } ?: emptyList(),
                 publishingHouse = publishingHouse,
                 wordCount = wordCount,
                 lastUpdated = lastUpdated,
                 isComplete = isComplete
             )
         )
+    }
+
+    /** 提取简介：定位「内容简介：」标签，取其后的简介正文 span（DOM 结构定位，避免吞入按钮/最近章节） */
+    private fun extractDescription(soup: Document): String {
+        val label = soup.selectFirst("#content span:contains(内容简介)") ?: return ""
+        var node = label.nextElementSibling()
+        while (node != null) {
+            if (node.tagName() == "span") {
+                // 简介正文 span：不含链接（<a>），且非「最近章节」那种带链接的
+                if (node.selectFirst("a") == null) {
+                    val t = node.text().trim()
+                    if (t.isNotEmpty()) return t
+                }
+            }
+            node = node.nextElementSibling()
+        }
+        return ""
     }
 
     // MARK: - 目录（卷 + 章）
@@ -137,12 +163,17 @@ class Wenku8DataSource(
             when (node) {
                 is com.fleeksoft.ksoup.nodes.TextNode -> text += node.text().replace("\u00A0", "  ")
                 is Element -> {
+                    val tagName = node.tagName().lowercase()
                     val classList = node.classNames()
-                    val isDivImage = node.tagName() == "div" && (classList.contains("divimage") || classList.contains("image"))
+                    val isDivImage = tagName == "div" && (classList.contains("divimage") || classList.contains("image"))
                     if (isDivImage) {
                         builder.simpleText(text)
                         text = ""
                         node.selectFirst("img")?.attr("src")?.let { builder.image(resolveImageUrl(it)) }
+                    } else if (tagName == "br") {
+                        // wenku8 正文用 <br> 分段：遇到 <br> 切分一段（无论当前文本是否空白，避免整章累积成一段）
+                        builder.simpleText(text)
+                        text = ""
                     }
                 }
             }

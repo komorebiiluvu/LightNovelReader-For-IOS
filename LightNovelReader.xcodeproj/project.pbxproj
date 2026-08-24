@@ -17,6 +17,7 @@
 		431E806D93618633A0562CB5 /* PageCurlReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA79C1F348F4B73B1C5652 /* PageCurlReaderView.swift */; };
 		494F2D51B73F05EF5BC4E9B4 /* RealDataUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B17C4510F620ACB62BD89FF /* RealDataUITests.swift */; };
 		5079AD33EFC78744F274D58D /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71107ACB4C57045FB64705B /* ColorHex.swift */; };
+		5734C24FDE0BA487702379A8 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F648BECC485B61BFBC86D4FE /* CrashReporter.swift */; };
 		63A9D354CF8C79C8319A10A9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 44B31BF10DD7A9CA8F2E110E /* LaunchScreen.storyboard */; };
 		6442A0C252D784EB82E2AE95 /* Wenku8Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65256692A1F65B7F74619DDF /* Wenku8Service.swift */; };
 		674DDA37BDC55CA20A7AD65D /* SharedKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4533EC916EC83DA3E43A4C68 /* SharedKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -126,6 +127,7 @@
 		EAD0E6253DFECBD3EEF13CCF /* SourceErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceErrorBanner.swift; sourceTree = "<group>"; };
 		EB8DFBBA95F3B3E0DFFB8FB9 /* BookCoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCoverView.swift; sourceTree = "<group>"; };
 		ED1EAB70FC716D38FB224945 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
+		F648BECC485B61BFBC86D4FE /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		F721A81290898DC59EF09A9B /* CoverImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverImageCache.swift; sourceTree = "<group>"; };
 		FB89179639E1E673D04AD4E6 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		FDF91F3B6CCBCD1E58735A64 /* ReadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingView.swift; sourceTree = "<group>"; };
@@ -210,6 +212,7 @@
 				191D413AAE6AEFD09955644D /* BookSourceServiceProtocol.swift */,
 				B91CAB6686D6AA40B1EC0BF9 /* ChapterDiskCache.swift */,
 				F721A81290898DC59EF09A9B /* CoverImageCache.swift */,
+				F648BECC485B61BFBC86D4FE /* CrashReporter.swift */,
 				2847C4A2279C3F33E1750074 /* EpubExporter.swift */,
 				92D63CC7A56FDB19CD9E4B9C /* KmpBookSourceAdapter.swift */,
 				65256692A1F65B7F74619DDF /* Wenku8Service.swift */,
@@ -443,6 +446,7 @@
 				2D346C3A07BD82D422365657 /* ChapterDiskCache.swift in Sources */,
 				5079AD33EFC78744F274D58D /* ColorHex.swift in Sources */,
 				7636F110FE0466D5788506F6 /* CoverImageCache.swift in Sources */,
+				5734C24FDE0BA487702379A8 /* CrashReporter.swift in Sources */,
 				8118E8E81169712FFE01D70C /* EpubExporter.swift in Sources */,
 				DC291515B661FCDA8FC3500B /* ExploreListView.swift in Sources */,
 				E9F1D8122756638783635887 /* ExploreView.swift in Sources */,

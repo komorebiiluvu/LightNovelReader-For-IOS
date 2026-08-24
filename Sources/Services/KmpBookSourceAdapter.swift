@@ -98,7 +98,11 @@ final class KmpBookSourceAdapter: BookSourceService {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                continuation.resume(returning: info!)
+                guard let info else {
+                    continuation.resume(throwing: BookSourceError.unreachable)
+                    return
+                }
+                continuation.resume(returning: info)
             }
         }
         return (info.books.map { Self.mapBook($0) }, Int(info.totalPages))
@@ -144,7 +148,11 @@ final class KmpBookSourceAdapter: BookSourceService {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                continuation.resume(returning: volumes!)
+                guard let volumes else {
+                    continuation.resume(throwing: BookSourceError.unreachable)
+                    return
+                }
+                continuation.resume(returning: volumes)
             }
         }
         // 卷→章 映射为扁平目录（与现有 ChapterItem 对齐）
@@ -168,23 +176,25 @@ final class KmpBookSourceAdapter: BookSourceService {
             throw BookSourceError.contentUnavailable(title: book.title)
         }
         let chapterId = "\(chapters[index].remoteID ?? index + 1)"
-        let kotlinContent: SharedKit.ChapterContent = try await withCheckedThrowingContinuation { continuation in
-            api.getChapterContent(chapterId: chapterId, bookId: "\(aid)") { content, error in
+        // 用 Flat 版：Kotlin 侧解析好段落/图片，避免 JsonObject 跨 Swift 边界桥接崩溃
+        let flat: SharedKit.ChapterContentFlat = try await withCheckedThrowingContinuation { continuation in
+            api.getChapterContentFlat(chapterId: chapterId, bookId: "\(aid)") { content, error in
                 if let error {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                continuation.resume(returning: content!)
+                guard let content else {
+                    continuation.resume(throwing: BookSourceError.contentUnavailable(title: book.title))
+                    return
+                }
+                continuation.resume(returning: content)
             }
         }
-        // KMP 组件化 JSON → iOS 现有 ChapterContent（段落 + 插图）
-        let paragraphs = api.extractParagraphs(contentJson: kotlinContent.content)
-        let images = api.extractImages(contentJson: kotlinContent.content)
         return ChapterContent(
             index: index,
-            title: kotlinContent.title,
-            paragraphs: paragraphs,
-            images: images
+            title: flat.title,
+            paragraphs: flat.paragraphs,
+            images: flat.images
         )
     }
 
@@ -250,7 +260,11 @@ final class KmpBookSourceAdapter: BookSourceService {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                continuation.resume(returning: info!)
+                guard let info else {
+                    continuation.resume(throwing: BookSourceError.unreachable)
+                    return
+                }
+                continuation.resume(returning: info)
             }
         }
         return Self.mapBook(info)
@@ -264,7 +278,11 @@ final class KmpBookSourceAdapter: BookSourceService {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                continuation.resume(returning: info!)
+                guard let info else {
+                    continuation.resume(throwing: BookSourceError.unreachable)
+                    return
+                }
+                continuation.resume(returning: info)
             }
         }
         return Self.mapBook(info)
@@ -286,7 +304,7 @@ final class KmpBookSourceAdapter: BookSourceService {
             lastChapter: 0,
             hasUpdate: false,
             hits: 0,
-            intro: info.description,
+            intro: info.description_,
             coverIndex: 0,
             coverURL: info.coverUrl,
             publishingHouse: info.publishingHouse,

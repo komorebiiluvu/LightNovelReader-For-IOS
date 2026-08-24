@@ -136,11 +136,15 @@ class Wenku8DataSourceApi {
     /** 探索首页推荐块（对齐上游 Wenku8HomeExploreTapPage） */
     fun getHomeBlocks(completionHandler: (List<HomeBlockInfo>?, Throwable?) -> Unit) {
         scope.launch {
-            val result = dataSource.getHomeBlocks()
-            result.fold(
-                onSuccess = { completionHandler(it, null) },
-                onFailure = { completionHandler(null, errorFrom(it)) }
-            )
+            try {
+                val result = dataSource.getHomeBlocks()
+                result.fold(
+                    onSuccess = { completionHandler(it, null) },
+                    onFailure = { completionHandler(null, errorFrom(it)) }
+                )
+            } catch (e: Throwable) {
+                completionHandler(null, NSErrorCompat(2, "解析首页推荐失败", e.message ?: "未知错误"))
+            }
         }
     }
 
@@ -152,12 +156,16 @@ class Wenku8DataSourceApi {
         completionHandler: (ExplorePageInfo?, Throwable?) -> Unit
     ) {
         scope.launch {
-            val category = ExploreCategoryInfo("", "", path.trimStart('/'), extraParams)
-            val result = dataSource.getExplorePage(category, page)
-            result.fold(
-                onSuccess = { completionHandler(it, null) },
-                onFailure = { completionHandler(null, errorFrom(it)) }
-            )
+            try {
+                val category = ExploreCategoryInfo("", "", path.trimStart('/'), extraParams)
+                val result = dataSource.getExplorePage(category, page)
+                result.fold(
+                    onSuccess = { completionHandler(it, null) },
+                    onFailure = { completionHandler(null, errorFrom(it)) }
+                )
+            } catch (e: Throwable) {
+                completionHandler(null, NSErrorCompat(2, "解析探索页失败", e.message ?: "未知错误"))
+            }
         }
     }
 
@@ -168,11 +176,15 @@ class Wenku8DataSourceApi {
         completionHandler: (BookInformation?, Throwable?) -> Unit
     ) {
         scope.launch {
-            val result = dataSource.getBookInformation(bookId)
-            result.fold(
-                onSuccess = { completionHandler(it, null) },
-                onFailure = { completionHandler(null, errorFrom(it)) }
-            )
+            try {
+                val result = dataSource.getBookInformation(bookId)
+                result.fold(
+                    onSuccess = { completionHandler(it, null) },
+                    onFailure = { completionHandler(null, errorFrom(it)) }
+                )
+            } catch (e: Throwable) {
+                completionHandler(null, NSErrorCompat(2, "解析书籍信息失败", e.message ?: "未知错误"))
+            }
         }
     }
 
@@ -183,11 +195,15 @@ class Wenku8DataSourceApi {
         completionHandler: (BookVolumes?, Throwable?) -> Unit
     ) {
         scope.launch {
-            val result = dataSource.getBookVolumes(bookId)
-            result.fold(
-                onSuccess = { completionHandler(it, null) },
-                onFailure = { completionHandler(null, errorFrom(it)) }
-            )
+            try {
+                val result = dataSource.getBookVolumes(bookId)
+                result.fold(
+                    onSuccess = { completionHandler(it, null) },
+                    onFailure = { completionHandler(null, errorFrom(it)) }
+                )
+            } catch (e: Throwable) {
+                completionHandler(null, NSErrorCompat(2, "解析目录失败", e.message ?: "未知错误"))
+            }
         }
     }
 
@@ -199,11 +215,51 @@ class Wenku8DataSourceApi {
         completionHandler: (ChapterContent?, Throwable?) -> Unit
     ) {
         scope.launch {
-            val result = dataSource.getChapterContent(chapterId, bookId)
-            result.fold(
-                onSuccess = { completionHandler(it, null) },
-                onFailure = { completionHandler(null, errorFrom(it)) }
-            )
+            try {
+                val result = dataSource.getChapterContent(chapterId, bookId)
+                result.fold(
+                    onSuccess = { completionHandler(it, null) },
+                    onFailure = { completionHandler(null, errorFrom(it)) }
+                )
+            } catch (e: Throwable) {
+                // 防御：Ksoup 解析/正文构建的意外异常转成错误回调，避免协程异常导致 app 崩溃
+                completionHandler(null, NSErrorCompat(2, "解析正文失败", e.message ?: "未知错误"))
+            }
+        }
+    }
+
+    /**
+     * 正文获取（Swift 友好版）：Kotlin 侧直接解析段落/图片/标题/上下章，
+     * 一次性返回纯 String 类型，避免 JsonObject 跨 Swift 边界桥接崩溃。
+     */
+    fun getChapterContentFlat(
+        chapterId: String,
+        bookId: String,
+        completionHandler: (ChapterContentFlat?, Throwable?) -> Unit
+    ) {
+        scope.launch {
+            try {
+                val result = dataSource.getChapterContent(chapterId, bookId)
+                result.fold(
+                    onSuccess = { content ->
+                        val paragraphs = ContentBuilderExtractor.extractParagraphs(content.content)
+                        val images = ContentBuilderExtractor.extractImages(content.content)
+                        completionHandler(
+                            ChapterContentFlat(
+                                title = content.title,
+                                paragraphs = paragraphs,
+                                images = images,
+                                prevChapter = content.prevChapter,
+                                nextChapter = content.nextChapter
+                            ),
+                            null
+                        )
+                    },
+                    onFailure = { completionHandler(null, errorFrom(it)) }
+                )
+            } catch (e: Throwable) {
+                completionHandler(null, NSErrorCompat(2, "解析正文失败", e.message ?: "未知错误"))
+            }
         }
     }
 
@@ -273,3 +329,12 @@ object GbkBridge {
         return io.nightfish.lightnovelreader.api.util.Gbk.decodeToString(bytes.toByteArray())
     }
 }
+
+/** 正文数据（Swift 友好）：纯 String 字段，避免 JsonObject 跨 Swift 边界 */
+class ChapterContentFlat(
+    val title: String,
+    val paragraphs: List<String>,
+    val images: List<String>,
+    val prevChapter: String?,
+    val nextChapter: String?
+)

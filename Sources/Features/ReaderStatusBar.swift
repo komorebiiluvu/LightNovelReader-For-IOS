@@ -96,6 +96,15 @@ struct ReaderBookPanel: View {
 
     @State private var isDownloaded = false
 
+    /// 第一小行：作者 · 连载状态（去掉冗余信息，只保留这两项）
+    private var bookSubtitle: String {
+        let status = book.isCompleted == true ? "已完结" : (book.isCompleted == false ? "连载中" : "")
+        let author = book.author.trimmingCharacters(in: .whitespaces)
+        if author.isEmpty { return status }
+        if status.isEmpty { return author }
+        return "\(author) · \(status)"
+    }
+
     private var progress: AppStore.OfflineProgress? {
         store.offlineProgress[book.id]
     }
@@ -111,12 +120,16 @@ struct ReaderBookPanel: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(foreground)
                         .lineLimit(2)
-                    Text(book.author)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(bookSubtitle)
                         .font(.caption)
                         .foregroundStyle(foreground.opacity(0.55))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     Text(book.totalChapters > 0 ? "第 \(chapter + 1) 章 · 共 \(book.totalChapters) 章" : "目录加载中…")
                         .font(.caption2)
                         .foregroundStyle(foreground.opacity(0.55))
+                        .lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }

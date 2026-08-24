@@ -200,11 +200,12 @@ struct ReaderView: View {
     /// 分页版本号：每次重新分页后递增，用于触发翻页视图重建（设置即时生效）
     @State private var paginationVersion = 0
 
-    /// 翻页视图的渲染签名：分页版本 + 背景 + 强调色 + 系统明暗
-    /// 任一变化都会让 PageCurlReaderView 重建当前页，实现设置即时响应
+    /// 翻页视图的渲染签名：分页版本 + 全部阅读设置（背景/字体/字号/行距/字重/边距/模式）+ 强调色 + 系统明暗
+    /// 任一变化都会让 PageCurlReaderView 重建当前页，实现设置即时响应（无需翻页）
     private var renderToken: String {
         let accent = UserDefaults.standard.string(forKey: "accentTheme") ?? AccentTheme.purple.rawValue
-        return "\(paginationVersion)|\(store.readerPreferences.backgroundIndex)|\(accent)|\(colorScheme == .dark ? "dark" : "light")"
+        let p = store.readerPreferences
+        return "\(paginationVersion)|\(p.backgroundIndex)|\(p.fontFamily.rawValue)|\(Int(p.fontSize))|\(Int(p.lineSpacing))|\(p.bold)|\(Int(p.marginLeft))|\(Int(p.marginRight))|\(Int(p.marginTop))|\(Int(p.marginBottom))|\(p.mode.rawValue)|\(accent)|\(colorScheme == .dark ? "dark" : "light")"
     }
 
     private func layoutKey(_ size: CGSize) -> String {
@@ -642,6 +643,7 @@ struct ReaderView: View {
                             withAnimation(.easeInOut(duration: 0.2)) { showBars.toggle() }
                         }
                     )
+                    .id("\(chapter)#\(renderToken)")  // 设置变化（背景/字体/分页）时整体重建，立即生效
                     .id(chapter)  // 换章时重建（重置到新章第一页）
                 }
             }

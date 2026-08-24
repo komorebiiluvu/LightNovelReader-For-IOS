@@ -55,6 +55,8 @@ struct BookCoverView: View {
             }
         }
         .aspectRatio(3 / 4, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .shadow(color: .black.opacity(shadowRadius > 0 ? 0.18 : 0), radius: shadowRadius, y: shadowRadius > 0 ? 4 : 0)
     }

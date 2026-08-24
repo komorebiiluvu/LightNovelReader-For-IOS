@@ -20,8 +20,21 @@ struct SettingsView: View {
     @State private var backupError: String?
     @State private var importDone = false
 
+    // 崩溃报告导出
+    @State private var crashShareItem: BackupShareItem?
+    @State private var showCrashClearDialog = false
+
     private var cacheSizeText: String {
         cacheSize < 0 ? "计算中…" : ByteCountFormatter.string(fromByteCount: cacheSize, countStyle: .file)
+    }
+
+    /// 导出崩溃报告为文本文件（分享面板）
+    private func exportCrashReport() {
+        let content = CrashReporter.shared.exportContent()
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("LightNovelReader-崩溃报告.txt")
+        try? content.write(to: url, atomically: true, encoding: .utf8)
+        crashShareItem = BackupShareItem(url: url)
     }
 
     /// 从 Info.plist 读取版本号
@@ -169,6 +182,20 @@ struct SettingsView: View {
             Section {
                 LabeledContent("版本", value: Self.appVersion)
                 LabeledContent("本地数据", value: "已自动保存")
+                if CrashReporter.shared.hasCrashes {
+                    Button {
+                        exportCrashReport()
+                    } label: {
+                        LabeledContent("崩溃报告", value: "\(CrashReporter.shared.crashFiles.count) 条，点按导出")
+                            .foregroundStyle(.primary)
+                    }
+                    Button(role: .destructive) {
+                        showCrashClearDialog = true
+                    } label: {
+                        Text("清除崩溃报告")
+                            .foregroundStyle(.primary)
+                    }
+                }
                 if let url = URL(string: "https://github.com/dmzz-yyhyy/LightNovelReader") {
                     Link(destination: url) {
                         HStack {
@@ -197,6 +224,15 @@ struct SettingsView: View {
         }
         .sheet(item: $backupShareItem) { item in
             ShareSheet(items: [item.url])
+        }
+        .sheet(item: $crashShareItem) { item in
+            ShareSheet(items: [item.url])
+        }
+        .confirmationDialog("清除全部崩溃报告？", isPresented: $showCrashClearDialog, titleVisibility: .visible) {
+            Button("清除", role: .destructive) {
+                CrashReporter.shared.clear()
+            }
+            Button("取消", role: .cancel) {}
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
             switch result {

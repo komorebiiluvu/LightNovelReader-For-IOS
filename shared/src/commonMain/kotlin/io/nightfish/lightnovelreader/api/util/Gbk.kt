@@ -60,6 +60,11 @@ object Gbk {
 
     /** 把 GBK/GB18030 字节序列解码成 Unicode 字符串（非法序列按单字节跳过，避免错位） */
     fun decodeToString(bytes: ByteArray): String {
+        // 诊断：表大小（完整应 23940）+ 抽样解码，真机排查乱码用
+        if (!diagLogged) {
+            diagLogged = true
+            println("[GbkDiag] mapSize=${decoderMap.size} sample=${decodeSample(bytes)}")
+        }
         val sb = StringBuilder(bytes.size)
         var i = 0
         while (i < bytes.size) {
@@ -87,6 +92,31 @@ object Gbk {
             } else {
                 i += 1
             }
+        }
+        return sb.toString()
+    }
+
+    private var diagLogged = false
+
+    /** 抽样诊断：取前 20 个双字节码位，打印解码结果 */
+    private fun decodeSample(bytes: ByteArray): String {
+        val sb = StringBuilder()
+        var count = 0
+        var i = 0
+        while (i + 1 < bytes.size && count < 10) {
+            val first = bytes[i].toInt() and 0xFF
+            if (first >= 0x80) {
+                val second = bytes[i + 1].toInt() and 0xFF
+                if (second >= 0x40 && second != 0x7F) {
+                    val key = (first shl 8) or second
+                    val ch = decoderMap[key]
+                    sb.append(if (ch != null) ch else '?')
+                    count += 1
+                    i += 2
+                    continue
+                }
+            }
+            i += 1
         }
         return sb.toString()
     }

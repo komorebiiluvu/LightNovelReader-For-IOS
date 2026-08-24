@@ -130,3 +130,91 @@ final class GbkDecodeTests: XCTestCase {
     }
 }
 #endif
+
+#if canImport(SharedKit)
+import SharedKit
+
+/// 详情页解析验证：简介应正常，不应是错误/乱码
+final class BookDetailParseTests: XCTestCase {
+    func testBookInformationDescription() async throws {
+        let api = Wenku8DataSourceApi()
+        // 先登录（真实网络）
+        let loggedIn = try await withCheckedThrowingContinuation { (c: CheckedContinuation<Bool, Error>) in
+            api.login(username: "komorebiiluv", password: "komorebi041016") { msg, err in
+                if let err {
+                    let nsErr = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: err)])
+                    c.resume(throwing: nsErr); return
+                }
+                c.resume(returning: msg == nil)
+            }
+        }
+        XCTAssertTrue(loggedIn, "应登录成功")
+        let info: SharedKit.BookInformation = try await withCheckedThrowingContinuation { c in
+            api.getBookInformation(bookId: "855") { info, err in
+                if let err {
+                    let nsErr = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: err)])
+                    c.resume(throwing: nsErr); return
+                }
+                c.resume(returning: info!)
+            }
+        }
+        print("[DetailTest] title=\(info.title)")
+        print("[DetailTest] desc=\(info.description.prefix(100))")
+        XCTAssertFalse(info.author.contains("文章状态"), "作者不应含文章状态（td 拼接 bug），实际: \(info.author.prefix(50))")
+        XCTAssertFalse(info.description.contains("插图"), "简介不应是章节链接（插图）")
+        XCTAssertFalse(info.description.isEmpty, "简介不应为空")
+        print("[DetailTest] descContent=\(info.description_.prefix(60))")
+    }
+}
+#endif
+
+/// 崩溃报告功能验证（写崩溃文件 → 能读回）
+final class CrashReporterTests: XCTestCase {
+    func testWriteAndReadCrash() {
+        // 触发一次崩溃记录（模拟异常捕获）
+        CrashReporter.shared.writeTestCrash()
+        XCTAssertTrue(CrashReporter.shared.hasCrashes, "应有崩溃报告")
+        let content = CrashReporter.shared.exportContent()
+        XCTAssertTrue(content.contains("测试崩溃"), "崩溃报告应含测试内容")
+        CrashReporter.shared.clear()
+        XCTAssertFalse(CrashReporter.shared.hasCrashes, "清除后应无报告")
+    }
+}
+
+#if canImport(SharedKit)
+import SharedKit
+
+/// Flat 版正文获取验证（对应「开始阅读」链路，避免 JsonObject 桥接崩溃）
+final class FlatContentTests: XCTestCase {
+    func testFetchFlatContent() async throws {
+        let api = Wenku8DataSourceApi()
+        _ = try await withCheckedThrowingContinuation { (c: CheckedContinuation<Bool, Error>) in
+            api.login(username: "komorebiiluv", password: "komorebi041016") { msg, err in
+                if let err {
+                    let nsErr = NSError(domain: "t", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: err)])
+                    c.resume(throwing: nsErr); return
+                }
+                c.resume(returning: msg == nil)
+            }
+        }
+        // 拉第一章正文（Flat 版）
+        let flat: SharedKit.ChapterContentFlat = try await withCheckedThrowingContinuation { c in
+            api.getChapterContentFlat(chapterId: "178183", bookId: "855") { ct, err in
+                if let err {
+                    let nsErr = NSError(domain: "t", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: err)])
+                    c.resume(throwing: nsErr); return
+                }
+                c.resume(returning: ct!)
+            }
+        }
+        print("[FlatTest] title=\(flat.title)")
+        print("[FlatTest] paragraphs=\(flat.paragraphs.count)")
+        print("[FlatTest] firstPara=\(flat.paragraphs.first?.prefix(50) ?? "")")
+        XCTAssertFalse(flat.title.isEmpty, "标题不应为空")
+        XCTAssertGreaterThan(flat.paragraphs.count, 3, "正文应分段（<br> 切分），实际 \(flat.paragraphs.count) 段")
+        // 用断言消息带出段落信息（测试输出可见）
+        let summary = "段落数=\(flat.paragraphs.count) 前3段=" + flat.paragraphs.prefix(3).map { String($0.prefix(20)) }.joined(separator: " | ")
+        XCTAssertTrue(flat.paragraphs.count >= 10, summary)
+    }
+}
+#endif
