@@ -1,0 +1,610 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0E270744575D64BACF72784E /* CatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D899F9DC8E73E570A1E45CB /* CatalogView.swift */; };
+		164D16761C5DD047BDEE6B55 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28F17F5EB5937488880F0C11 /* Book.swift */; };
+		1B63702DD0B0EC48409A01C6 /* ReadingStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74BC8971517555D38DD282B9 /* ReadingStats.swift */; };
+		1C0EFE4405DB7E68D948AD23 /* LightNovelReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B91357788F89AE56BAE64B2 /* LightNovelReaderApp.swift */; };
+		1E6D635CABAECB89480DC675 /* BookSourceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5B3D5A3E10752D009146B5 /* BookSourceService.swift */; };
+		2D346C3A07BD82D422365657 /* ChapterDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91CAB6686D6AA40B1EC0BF9 /* ChapterDiskCache.swift */; };
+		36E2F0BAF478D04B877F3703 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC707781BA843555D9CC0F3 /* SampleData.swift */; };
+		3E9915636670C3DDA7B31178 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 532F86404A546D6A521AB60F /* SplashView.swift */; };
+		3EDA84FF1C06780F82416133 /* BookShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E10079A7AF4486A66D3B8CC /* BookShelf.swift */; };
+		431E806D93618633A0562CB5 /* PageCurlReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA79C1F348F4B73B1C5652 /* PageCurlReaderView.swift */; };
+		5079AD33EFC78744F274D58D /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71107ACB4C57045FB64705B /* ColorHex.swift */; };
+		63A9D354CF8C79C8319A10A9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 44B31BF10DD7A9CA8F2E110E /* LaunchScreen.storyboard */; };
+		6442A0C252D784EB82E2AE95 /* Wenku8Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65256692A1F65B7F74619DDF /* Wenku8Service.swift */; };
+		6B0881A2CE9D67EDC981D6DB /* ReaderStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 965493DEA1121241AC995A47 /* ReaderStatusBar.swift */; };
+		7636F110FE0466D5788506F6 /* CoverImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F721A81290898DC59EF09A9B /* CoverImageCache.swift */; };
+		7C24BF2B89CE364030493950 /* BookshelfView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1490432893DA12514CCE0A28 /* BookshelfView.swift */; };
+		7DC7E0420054C957EA3B2254 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A4FB528F12C588E4D451D9 /* ReaderView.swift */; };
+		8118E8E81169712FFE01D70C /* EpubExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2847C4A2279C3F33E1750074 /* EpubExporter.swift */; };
+		82AF89C4503493B468C72754 /* BookCoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8DFBBA95F3B3E0DFFB8FB9 /* BookCoverView.swift */; };
+		85B3743F66EB492ADE83B3E8 /* ReadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF91F3B6CCBCD1E58735A64 /* ReadingView.swift */; };
+		88E80E252B3D6FCF7490F71F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7CA194A430DCA151A8E4DCC /* Assets.xcassets */; };
+		8B16537B263559D9287EC5F4 /* BookDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D31EE02D69791778A90AB1 /* BookDetailView.swift */; };
+		8BD4F91861AAEE891E32B17E /* ShelfManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9123E393EA778D7FC165400C /* ShelfManageView.swift */; };
+		8FE4C5EB2D89A5816ACC5400 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB89179639E1E673D04AD4E6 /* AppStore.swift */; };
+		A41027FD5AC2B2F3702EDA2B /* ReaderSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE533941C7F6C470BF5E4475 /* ReaderSettingsSheet.swift */; };
+		AE054E6B94BFB8F92E17448C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF9060531D8F8A28EE78DA2 /* SettingsView.swift */; };
+		B0EBF47BFC7E39375D0EBFEA /* NotoSerifSC.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2E384B9723DBB810FECD3308 /* NotoSerifSC.ttf */; };
+		BA13AC1EA9DE9AFC506E97C4 /* LXGWWenKai-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7133AFE2C12D9595B9E6434E /* LXGWWenKai-Regular.ttf */; };
+		D01E8BF644B7ED68288474B0 /* SourceErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD0E6253DFECBD3EEF13CCF /* SourceErrorBanner.swift */; };
+		D87922F7464C2652BBEA0230 /* ReaderPagination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95FEA13EC5C23919298C5664 /* ReaderPagination.swift */; };
+		DC291515B661FCDA8FC3500B /* ExploreListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 725F1FBECBE098C0C44488D3 /* ExploreListView.swift */; };
+		E0192DDFFA824E39ED0CA1F8 /* Chapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA173EF354CA7093AB438154 /* Chapter.swift */; };
+		E5709F9F7511E66092F94B26 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E5783687AF594AAA6642ED /* ShareSheet.swift */; };
+		E8883A37E0ECDEA79D0FAA19 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D964C2854C86889B05BAB12D /* StatsView.swift */; };
+		E9419FDFF654CDDF241454D0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 800BA1346421127D2C772AB9 /* RootView.swift */; };
+		E9F1D8122756638783635887 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 427C007DC425B24664BA62AA /* ExploreView.swift */; };
+		EE2E578025A8C809A757B38C /* LightNovelReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4DC0A27FC58D584C49188D /* LightNovelReaderTests.swift */; };
+		FC07DD2830ED9881486D8B28 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED1EAB70FC716D38FB224945 /* LicensesView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BA7CA32E850832EF1F8C3C40 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6E1C6806D29D7C9D70933077 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5E0443B2E65E83DDA35F26A2;
+			remoteInfo = LightNovelReader;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0B91357788F89AE56BAE64B2 /* LightNovelReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightNovelReaderApp.swift; sourceTree = "<group>"; };
+		0D899F9DC8E73E570A1E45CB /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
+		1490432893DA12514CCE0A28 /* BookshelfView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookshelfView.swift; sourceTree = "<group>"; };
+		231755B4952691C37E1665BB /* LightNovelReader.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LightNovelReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2847C4A2279C3F33E1750074 /* EpubExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubExporter.swift; sourceTree = "<group>"; };
+		28F17F5EB5937488880F0C11 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
+		2CF9060531D8F8A28EE78DA2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		2E384B9723DBB810FECD3308 /* NotoSerifSC.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = NotoSerifSC.ttf; sourceTree = "<group>"; };
+		31D31EE02D69791778A90AB1 /* BookDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookDetailView.swift; sourceTree = "<group>"; };
+		3E10079A7AF4486A66D3B8CC /* BookShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookShelf.swift; sourceTree = "<group>"; };
+		427C007DC425B24664BA62AA /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		44B31BF10DD7A9CA8F2E110E /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		532F86404A546D6A521AB60F /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		54CA79C1F348F4B73B1C5652 /* PageCurlReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageCurlReaderView.swift; sourceTree = "<group>"; };
+		63E5783687AF594AAA6642ED /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		65256692A1F65B7F74619DDF /* Wenku8Service.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wenku8Service.swift; sourceTree = "<group>"; };
+		7133AFE2C12D9595B9E6434E /* LXGWWenKai-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LXGWWenKai-Regular.ttf"; sourceTree = "<group>"; };
+		725F1FBECBE098C0C44488D3 /* ExploreListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreListView.swift; sourceTree = "<group>"; };
+		74BC8971517555D38DD282B9 /* ReadingStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStats.swift; sourceTree = "<group>"; };
+		7B5B3D5A3E10752D009146B5 /* BookSourceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookSourceService.swift; sourceTree = "<group>"; };
+		800BA1346421127D2C772AB9 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		8F4DC0A27FC58D584C49188D /* LightNovelReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightNovelReaderTests.swift; sourceTree = "<group>"; };
+		9123E393EA778D7FC165400C /* ShelfManageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfManageView.swift; sourceTree = "<group>"; };
+		95FEA13EC5C23919298C5664 /* ReaderPagination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPagination.swift; sourceTree = "<group>"; };
+		965493DEA1121241AC995A47 /* ReaderStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderStatusBar.swift; sourceTree = "<group>"; };
+		AE533941C7F6C470BF5E4475 /* ReaderSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSettingsSheet.swift; sourceTree = "<group>"; };
+		B91CAB6686D6AA40B1EC0BF9 /* ChapterDiskCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterDiskCache.swift; sourceTree = "<group>"; };
+		BA173EF354CA7093AB438154 /* Chapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chapter.swift; sourceTree = "<group>"; };
+		C7CA194A430DCA151A8E4DCC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CDC96FE083F7AD49D423D862 /* LightNovelReaderTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LightNovelReaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D964C2854C86889B05BAB12D /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		E71107ACB4C57045FB64705B /* ColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorHex.swift; sourceTree = "<group>"; };
+		E8A4FB528F12C588E4D451D9 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
+		EAD0E6253DFECBD3EEF13CCF /* SourceErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceErrorBanner.swift; sourceTree = "<group>"; };
+		EB8DFBBA95F3B3E0DFFB8FB9 /* BookCoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCoverView.swift; sourceTree = "<group>"; };
+		ED1EAB70FC716D38FB224945 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
+		F721A81290898DC59EF09A9B /* CoverImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverImageCache.swift; sourceTree = "<group>"; };
+		FB89179639E1E673D04AD4E6 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		FBC707781BA843555D9CC0F3 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
+		FDF91F3B6CCBCD1E58735A64 /* ReadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1DDD8D7E31E79885402651FE /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				FB89179639E1E673D04AD4E6 /* AppStore.swift */,
+			);
+			path = Store;
+			sourceTree = "<group>";
+		};
+		22B6B8D09189C4A6ADA9D772 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				231755B4952691C37E1665BB /* LightNovelReader.app */,
+				CDC96FE083F7AD49D423D862 /* LightNovelReaderTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		252C56D65299EBFBDC9F9421 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				E71107ACB4C57045FB64705B /* ColorHex.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		342545511C7CF5E3AAD00785 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				C7CA194A430DCA151A8E4DCC /* Assets.xcassets */,
+				44B31BF10DD7A9CA8F2E110E /* LaunchScreen.storyboard */,
+				7D2D5235F0A2B0407E6DC959 /* App */,
+				3DAB1694F49A807A893D4A15 /* Components */,
+				A1EAA701F02FD1E778588042 /* Features */,
+				E34B2B6EC81FA159D16C0DBB /* Fonts */,
+				A4A9CAA9D042D7094F81A8E7 /* Models */,
+				61C6F914362D8536614DCB06 /* Services */,
+				1DDD8D7E31E79885402651FE /* Store */,
+				252C56D65299EBFBDC9F9421 /* Theme */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		3DAB1694F49A807A893D4A15 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				EB8DFBBA95F3B3E0DFFB8FB9 /* BookCoverView.swift */,
+				63E5783687AF594AAA6642ED /* ShareSheet.swift */,
+				EAD0E6253DFECBD3EEF13CCF /* SourceErrorBanner.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		61C6F914362D8536614DCB06 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				7B5B3D5A3E10752D009146B5 /* BookSourceService.swift */,
+				B91CAB6686D6AA40B1EC0BF9 /* ChapterDiskCache.swift */,
+				F721A81290898DC59EF09A9B /* CoverImageCache.swift */,
+				2847C4A2279C3F33E1750074 /* EpubExporter.swift */,
+				65256692A1F65B7F74619DDF /* Wenku8Service.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		698765A1531310DB6563AF37 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				8F4DC0A27FC58D584C49188D /* LightNovelReaderTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		7D2D5235F0A2B0407E6DC959 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0B91357788F89AE56BAE64B2 /* LightNovelReaderApp.swift */,
+				800BA1346421127D2C772AB9 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		9527BBBB63C6AA2662D43812 = {
+			isa = PBXGroup;
+			children = (
+				342545511C7CF5E3AAD00785 /* Sources */,
+				698765A1531310DB6563AF37 /* Tests */,
+				22B6B8D09189C4A6ADA9D772 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1EAA701F02FD1E778588042 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				31D31EE02D69791778A90AB1 /* BookDetailView.swift */,
+				1490432893DA12514CCE0A28 /* BookshelfView.swift */,
+				0D899F9DC8E73E570A1E45CB /* CatalogView.swift */,
+				725F1FBECBE098C0C44488D3 /* ExploreListView.swift */,
+				427C007DC425B24664BA62AA /* ExploreView.swift */,
+				ED1EAB70FC716D38FB224945 /* LicensesView.swift */,
+				54CA79C1F348F4B73B1C5652 /* PageCurlReaderView.swift */,
+				95FEA13EC5C23919298C5664 /* ReaderPagination.swift */,
+				AE533941C7F6C470BF5E4475 /* ReaderSettingsSheet.swift */,
+				965493DEA1121241AC995A47 /* ReaderStatusBar.swift */,
+				E8A4FB528F12C588E4D451D9 /* ReaderView.swift */,
+				FDF91F3B6CCBCD1E58735A64 /* ReadingView.swift */,
+				2CF9060531D8F8A28EE78DA2 /* SettingsView.swift */,
+				9123E393EA778D7FC165400C /* ShelfManageView.swift */,
+				532F86404A546D6A521AB60F /* SplashView.swift */,
+				D964C2854C86889B05BAB12D /* StatsView.swift */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A4A9CAA9D042D7094F81A8E7 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				28F17F5EB5937488880F0C11 /* Book.swift */,
+				3E10079A7AF4486A66D3B8CC /* BookShelf.swift */,
+				BA173EF354CA7093AB438154 /* Chapter.swift */,
+				74BC8971517555D38DD282B9 /* ReadingStats.swift */,
+				FBC707781BA843555D9CC0F3 /* SampleData.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E34B2B6EC81FA159D16C0DBB /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				7133AFE2C12D9595B9E6434E /* LXGWWenKai-Regular.ttf */,
+				2E384B9723DBB810FECD3308 /* NotoSerifSC.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5AB164677469FEDC54BEC2BE /* LightNovelReaderTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA079476B87B32E129B7DEA5 /* Build configuration list for PBXNativeTarget "LightNovelReaderTests" */;
+			buildPhases = (
+				2E5FAC512714E1DEB3BBF8B5 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				468CFF2FF76A9D57A52445B7 /* PBXTargetDependency */,
+			);
+			name = LightNovelReaderTests;
+			packageProductDependencies = (
+			);
+			productName = LightNovelReaderTests;
+			productReference = CDC96FE083F7AD49D423D862 /* LightNovelReaderTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5E0443B2E65E83DDA35F26A2 /* LightNovelReader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D8B2887DC541BE439C11EA8 /* Build configuration list for PBXNativeTarget "LightNovelReader" */;
+			buildPhases = (
+				94C63FE6D742C405DFD7E4CF /* Sources */,
+				66FF54D486B4D035398A4A7A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LightNovelReader;
+			packageProductDependencies = (
+			);
+			productName = LightNovelReader;
+			productReference = 231755B4952691C37E1665BB /* LightNovelReader.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6E1C6806D29D7C9D70933077 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1400;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = E03A18D29DBB36CF5081ABC7 /* Build configuration list for PBXProject "LightNovelReader" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 9527BBBB63C6AA2662D43812;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 22B6B8D09189C4A6ADA9D772 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5E0443B2E65E83DDA35F26A2 /* LightNovelReader */,
+				5AB164677469FEDC54BEC2BE /* LightNovelReaderTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		66FF54D486B4D035398A4A7A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				88E80E252B3D6FCF7490F71F /* Assets.xcassets in Resources */,
+				BA13AC1EA9DE9AFC506E97C4 /* LXGWWenKai-Regular.ttf in Resources */,
+				63A9D354CF8C79C8319A10A9 /* LaunchScreen.storyboard in Resources */,
+				B0EBF47BFC7E39375D0EBFEA /* NotoSerifSC.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2E5FAC512714E1DEB3BBF8B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE2E578025A8C809A757B38C /* LightNovelReaderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		94C63FE6D742C405DFD7E4CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8FE4C5EB2D89A5816ACC5400 /* AppStore.swift in Sources */,
+				164D16761C5DD047BDEE6B55 /* Book.swift in Sources */,
+				82AF89C4503493B468C72754 /* BookCoverView.swift in Sources */,
+				8B16537B263559D9287EC5F4 /* BookDetailView.swift in Sources */,
+				3EDA84FF1C06780F82416133 /* BookShelf.swift in Sources */,
+				1E6D635CABAECB89480DC675 /* BookSourceService.swift in Sources */,
+				7C24BF2B89CE364030493950 /* BookshelfView.swift in Sources */,
+				0E270744575D64BACF72784E /* CatalogView.swift in Sources */,
+				E0192DDFFA824E39ED0CA1F8 /* Chapter.swift in Sources */,
+				2D346C3A07BD82D422365657 /* ChapterDiskCache.swift in Sources */,
+				5079AD33EFC78744F274D58D /* ColorHex.swift in Sources */,
+				7636F110FE0466D5788506F6 /* CoverImageCache.swift in Sources */,
+				8118E8E81169712FFE01D70C /* EpubExporter.swift in Sources */,
+				DC291515B661FCDA8FC3500B /* ExploreListView.swift in Sources */,
+				E9F1D8122756638783635887 /* ExploreView.swift in Sources */,
+				FC07DD2830ED9881486D8B28 /* LicensesView.swift in Sources */,
+				1C0EFE4405DB7E68D948AD23 /* LightNovelReaderApp.swift in Sources */,
+				431E806D93618633A0562CB5 /* PageCurlReaderView.swift in Sources */,
+				D87922F7464C2652BBEA0230 /* ReaderPagination.swift in Sources */,
+				A41027FD5AC2B2F3702EDA2B /* ReaderSettingsSheet.swift in Sources */,
+				6B0881A2CE9D67EDC981D6DB /* ReaderStatusBar.swift in Sources */,
+				7DC7E0420054C957EA3B2254 /* ReaderView.swift in Sources */,
+				1B63702DD0B0EC48409A01C6 /* ReadingStats.swift in Sources */,
+				85B3743F66EB492ADE83B3E8 /* ReadingView.swift in Sources */,
+				E9419FDFF654CDDF241454D0 /* RootView.swift in Sources */,
+				36E2F0BAF478D04B877F3703 /* SampleData.swift in Sources */,
+				AE054E6B94BFB8F92E17448C /* SettingsView.swift in Sources */,
+				E5709F9F7511E66092F94B26 /* ShareSheet.swift in Sources */,
+				8BD4F91861AAEE891E32B17E /* ShelfManageView.swift in Sources */,
+				D01E8BF644B7ED68288474B0 /* SourceErrorBanner.swift in Sources */,
+				3E9915636670C3DDA7B31178 /* SplashView.swift in Sources */,
+				E8883A37E0ECDEA79D0FAA19 /* StatsView.swift in Sources */,
+				6442A0C252D784EB82E2AE95 /* Wenku8Service.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		468CFF2FF76A9D57A52445B7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5E0443B2E65E83DDA35F26A2 /* LightNovelReader */;
+			targetProxy = BA7CA32E850832EF1F8C3C40 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1F50A0BF0174758C77662C8B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.LightNovelReaderTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LightNovelReader.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LightNovelReader";
+			};
+			name = Debug;
+		};
+		24DA4CBF43D20428DE3FA7A1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		2E2F0BA544BF1B57823C069A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.LightNovelReaderTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LightNovelReader.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LightNovelReader";
+			};
+			name = Release;
+		};
+		92F19FB35DAA932ED97653E8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A93D7A544C699F466B9A51C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.LightNovelReader;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.7;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AC36D38AC8DAC8BC4F238D1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.LightNovelReader;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.7;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9D8B2887DC541BE439C11EA8 /* Build configuration list for PBXNativeTarget "LightNovelReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC36D38AC8DAC8BC4F238D1E /* Debug */,
+				A93D7A544C699F466B9A51C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CA079476B87B32E129B7DEA5 /* Build configuration list for PBXNativeTarget "LightNovelReaderTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1F50A0BF0174758C77662C8B /* Debug */,
+				2E2F0BA544BF1B57823C069A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E03A18D29DBB36CF5081ABC7 /* Build configuration list for PBXProject "LightNovelReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24DA4CBF43D20428DE3FA7A1 /* Debug */,
+				92F19FB35DAA932ED97653E8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6E1C6806D29D7C9D70933077 /* Project object */;
+}

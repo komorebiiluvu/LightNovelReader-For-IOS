@@ -1,0 +1,17 @@
+# Xcode / DerivedData
+build/
+DerivedData/
+*.xcuserdatad/
+xcuserdata/
+*.xcuserstate
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# 系统文件
+.DS_Store
+
+# 编译产物
+*.ipa
+*.dSYM
