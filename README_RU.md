@@ -11,7 +11,7 @@
 
 ## Введение
 
-LightNovelReader (iOS) — это открытая читалка ранобэ, написанная на Swift и SwiftUI, поддерживающая iPhone и iPad. Интерфейс и взаимодействие созданы по мотивам Android-версии [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader).
+LightNovelReader (iOS) — это открытая читалка ранобэ, написанная на Swift/SwiftUI (UI) + Kotlin Multiplatform (данные), поддерживающая iPhone и iPad. Интерфейс и взаимодействие созданы по мотивам Android-версии [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader).
 
 > ### ❤️ Особая благодарность
 >

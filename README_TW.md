@@ -11,7 +11,7 @@
 
 ## 介紹
 
-LightNovelReader (iOS) 是一款開源的輕小說閱讀軟體，使用 Swift 與 SwiftUI 編寫，支援 iPhone 與 iPad。介面與互動參考 Android 版 [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader) 實作。
+LightNovelReader (iOS) 是一款開源的輕小說閱讀軟體，使用 Swift/SwiftUI（UI 層）+ Kotlin Multiplatform（資料層）編寫，支援 iPhone 與 iPad。介面與互動參考 Android 版 [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader) 實作。
 
 > ### ❤️ 特別鳴謝
 >

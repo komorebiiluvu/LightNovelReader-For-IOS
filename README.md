@@ -5,13 +5,15 @@
     <h1>LightNovelReader (iOS)</h1>
     <a><img alt="iOS" src="https://img.shields.io/badge/iOS-000000?logo=apple&logoColor=white&style=for-the-badge"/></a>
     <a><img alt="Swift" src="https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white&style=for-the-badge"/></a>
-    <a><img alt="SwiftUI" src="https://img.shields.io/badge/SwiftUI-0D7CFF?logo=swift&logoColor=white&style=for-the-badge"/></a>
-    <p>基于 SwiftUI 的 iOS 轻小说阅读器，支持 iPhone 与 iPad</p>
+    <a><img alt="SwiftUI" src="https://img.shields.io/badge/SwiftUI-0D7CFF?logo=swiftui&logoColor=white&style=for-the-badge"/></a>
+    <a><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=for-the-badge"/></a>
+    <a><img alt="KMP" src="https://img.shields.io/badge/KMP-Multiplatform-7F52FF?style=for-the-badge"/></a>
+    <p>基于 SwiftUI + Kotlin Multiplatform 的 iOS 轻小说阅读器，支持 iPhone 与 iPad</p>
 </div>
 
 ## 介绍
 
-LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 Swift 与 SwiftUI 编写，支持 iPhone 与 iPad。界面与交互参考 Android 版 [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader) 实现。
+LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 **Swift/SwiftUI（UI 层）+ Kotlin Multiplatform（数据层）** 编写，支持 iPhone 与 iPad。界面与交互参考 Android 版 [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader) 实现。
 
 **数据层采用 Kotlin Multiplatform（KMP）**：从上游项目移植数据模型与 wenku8 抓取器，编译为 `SharedKit` 框架供 iOS 调用，实现与上游 Android 版**同源的数据层**（书 ID、组件 JSON 格式完全一致），便于跟随上游更新与数据互通。
 
@@ -28,6 +30,9 @@ LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 Swift �
 - 离线缓存：全书下载，断网可读
 - 导出：EPUB / TXT
 - 阅读统计：时长累计与热力图
+- **KMP 数据互通**：数据层用 Kotlin Multiplatform 实现，与上游 Android 版同源（详见下方「技术架构」）
+- **探索对齐上游**：6 大栏目（轻小说列表/热门/动画化/今日更新/新书一览/完结全本）、首页推荐、标签浏览
+- **崩溃报告**：设置页可导出崩溃日志，方便反馈问题
 
 ## 技术架构
 

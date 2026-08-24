@@ -11,7 +11,7 @@
 
 ## Introduction
 
-LightNovelReader (iOS) is an open-source light novel reader written in Swift and SwiftUI, supporting iPhone and iPad. Its UI and interactions are inspired by the Android app [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader).
+LightNovelReader (iOS) is an open-source light novel reader written in Swift/SwiftUI (UI) + Kotlin Multiplatform (data), supporting iPhone and iPad. Its UI and interactions are inspired by the Android app [LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader).
 
 > ### ❤️ Special Thanks
 >
