@@ -37,11 +37,11 @@ LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 Swift �
 
 ## 下载
 
-从 [GitHub Releases](https://github.com/komorebiiluvu/LightNovelReader/releases/latest) 下载最新发布版。发布包为未签名的 `.ipa` 文件，需自行签名后安装（可使用爱思助手、Sideloadly 等工具）。
+从 [GitHub Releases](https://github.com/komorebiiluvu/LightNovelReader-For-IOS/releases/latest) 下载最新发布版。发布包为未签名的 `.ipa` 文件，需自行签名后安装（可使用爱思助手、Sideloadly 等工具）。
 
 ## 支持
 
-- 在 [**此处**](https://github.com/komorebiiluvu/LightNovelReader/issues/new/choose) 提交 Bug 反馈或新功能请求
+- 在 [**此处**](https://github.com/komorebiiluvu/LightNovelReader-For-IOS/issues/new/choose) 提交 Bug 反馈或新功能请求
 - 联系作者：**QQ：`3662909214`**
 
 ## License

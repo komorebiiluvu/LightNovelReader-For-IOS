@@ -37,11 +37,11 @@ LightNovelReader (iOS) is an open-source light novel reader written in Swift and
 
 ## Download
 
-Download the latest release from [GitHub Releases](https://github.com/komorebiiluvu/LightNovelReader/releases/latest). Release builds are unsigned `.ipa` files — sign them yourself before installing (e.g. with Sideloadly, AltStore, or similar tools).
+Download the latest release from [GitHub Releases](https://github.com/komorebiiluvu/LightNovelReader-For-IOS/releases/latest). Release builds are unsigned `.ipa` files — sign them yourself before installing (e.g. with Sideloadly, AltStore, or similar tools).
 
 ## Support
 
-- File a bug report or feature request at [Issues](https://github.com/komorebiiluvu/LightNovelReader/issues/new/choose)
+- File a bug report or feature request at [Issues](https://github.com/komorebiiluvu/LightNovelReader-For-IOS/issues/new/choose)
 - Contact the author: **QQ: `3662909214`**
 
 ## License
