@@ -111,7 +111,18 @@ struct PageCurlReaderView: UIViewControllerRepresentable {
         }
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-            true
+            // 点击翻页与拖拽翻页不要同时识别，避免一次操作触发两次翻页
+            false
+        }
+
+        /// 让点击手势在拖拽开始时失效，防止点击+拖拽连续触发两次翻页
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer is UITapGestureRecognizer,
+               let pan = pvc?.gestureRecognizers.compactMap({ $0 as? UIPanGestureRecognizer }).first,
+               pan.state == .began || pan.state == .changed {
+                return false
+            }
+            return true
         }
 
         // MARK: - 页构造
