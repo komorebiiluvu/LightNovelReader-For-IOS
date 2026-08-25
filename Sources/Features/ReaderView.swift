@@ -43,14 +43,16 @@ private struct ReaderScrollSurface: View {
                     Text("第 \(chapterNumber + 1) 章")
                         .font(.title2)
                         .fontWeight(.bold)
-                    ForEach(Array(content.paragraphs.enumerated()), id: \.offset) { offset, paragraph in
-                        Text(paragraph)
-                            .font(bodyFont)
-                            .lineSpacing(lineSpacing)
-                            .id("para-\(offset)")
-                    }
-                    ForEach(content.images, id: \.self) { urlString in
-                        scrollImage(urlString)
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(Array(content.paragraphs.enumerated()), id: \.offset) { offset, paragraph in
+                            Text(paragraph)
+                                .font(bodyFont)
+                                .lineSpacing(lineSpacing)
+                                .id("para-\(offset)")
+                        }
+                        ForEach(content.images, id: \.self) { urlString in
+                            scrollImage(urlString)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

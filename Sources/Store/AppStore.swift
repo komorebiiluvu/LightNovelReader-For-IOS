@@ -1302,22 +1302,34 @@ final class AppStore: ObservableObject {
         switch format {
         case .epub:
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(fileBase).epub")
-            try EpubExporter.writeEpub(
-                title: book.title,
-                author: book.author,
-                chapters: chapters,
-                coverData: await fetchCoverData(for: book),
-                to: url
-            )
+            // 纯计算（XHTML 拼接 + deflate 压缩 + CRC）放到后台线程，避免大书在主线程冻结 UI
+            let coverData = await fetchCoverData(for: book)
+            let title = book.title
+            let author = book.author
+            try await Task.detached(priority: .userInitiated) {
+                try EpubExporter.writeEpub(
+                    title: title,
+                    author: author,
+                    chapters: chapters,
+                    coverData: coverData,
+                    to: url
+                )
+            }.value
             return url
         case .txt:
-            var text = "\(book.title)\n作者：\(book.author)\n来源：\(book.source)\n"
-            for chapter in chapters {
-                text += "\n\n\(chapter.title)\n\n"
-                text += chapter.paragraphs.joined(separator: "\n")
-            }
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(fileBase).txt")
-            try text.data(using: .utf8)?.write(to: url, options: .atomic)
+            let title = book.title
+            let author = book.author
+            let source = book.source
+            // 全书文本拼接 + 写盘都放后台，避免大书在主线程冻结 UI
+            try await Task.detached(priority: .userInitiated) {
+                var text = "\(title)\n作者：\(author)\n来源：\(source)\n"
+                for chapter in chapters {
+                    text += "\n\n\(chapter.title)\n\n"
+                    text += chapter.paragraphs.joined(separator: "\n")
+                }
+                try text.data(using: .utf8)?.write(to: url, options: .atomic)
+            }.value
             return url
         }
     }

@@ -38,6 +38,11 @@ final class KmpBookSourceAdapter: BookSourceService {
 
     private let api = Wenku8DataSourceApi()
 
+    /// 释放 Kotlin 侧协程作用域与 Ktor HttpClient，避免随 App 生命周期常驻
+    deinit {
+        api.close()
+    }
+
     // MARK: - 搜索（书源内搜索）
 
     func search(_ term: String) async throws -> [Book] {

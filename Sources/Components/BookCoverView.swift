@@ -65,6 +65,8 @@ struct BookCoverView: View {
 /// 封面图加载视图：走 CoverImageCache（磁盘 + 内存 + 重试），
 /// 失败或加载中显示占位渐变；视图重入（滑出再滑回）会重新触发加载。
 /// 内存命中时首帧直接渲染图片（同步读取），图片淡入避免闪动。
+/// 展示尺寸的下采样/位图解压在后台 Task 执行，结果按 url+尺寸缓存，
+/// 避免滚动时每个封面 cell 在主线程重复解码导致掉帧。
 struct CoverImageView: View {
     let urlString: String?
     let placeholder: LinearGradient
@@ -72,10 +74,16 @@ struct CoverImageView: View {
     @State private var imageData: Data?
     @State private var failed = false
 
+    /// 后台下采样结果缓存：url + 展示尺寸 → 位图 Data。
+    /// 同一封面在书架/探索等多处显示、或滚动重入时复用，避免主线程重复解码。
+    /// 封面位图几十 KB/张，量级可控；内存警告时由系统回收。
+    /// 读写都在 @MainActor 的 decodeIfNeeded 内串行进行，无需加锁。
+    private static var decodeCache: [String: Data] = [:]
+
     var body: some View {
         GeometryReader { geo in
             Group {
-                if let imageData, let uiImage = decode(imageData, size: geo.size) {
+                if let imageData, let uiImage = UIImage(data: imageData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
@@ -84,23 +92,49 @@ struct CoverImageView: View {
                 }
             }
             .animation(.easeOut(duration: 0.18), value: imageData)
+            .task(id: decodeTaskKey(size: geo.size)) {
+                await decodeIfNeeded(size: geo.size)
+            }
         }
         .task(id: urlString) {
             await load()
         }
     }
 
-    /// 按视图实际渲染尺寸解码（@3x 屏幕 1pt ≈ 3px）。
-    /// 内存缓存已按 420px 下采样，这里对详情页等大尺寸场景再按需放大/缩小解码，
-    /// 保证小列表不放大原图、大封面不清。
-    private func decode(_ data: Data, size: CGSize) -> UIImage? {
-        guard !data.isEmpty, size.width > 0, size.height > 0 else { return nil }
+    /// 解码任务标识：url + 数据版本 + 展示尺寸。
+    /// 数据版本（count）保证 imageData 从 nil→data→已解码 的每次变化都重新求值；
+    /// 尺寸变化（旋转/换设备）时同样自动重新触发。
+    private func decodeTaskKey(size: CGSize) -> String {
+        "\(urlString ?? "")#\(imageData?.count ?? -1)#\(Int(size.width))x\(Int(size.height))"
+    }
+
+    /// 缓存标识：url + 展示尺寸（同尺寸复用，不随数据版本变化）
+    private func decodeCacheKey(size: CGSize) -> String {
+        "\(urlString ?? "")#\(Int(size.width))x\(Int(size.height))"
+    }
+
+    /// 位图已按展示尺寸解码则跳过；否则在后台下采样并写缓存。
+    private func decodeIfNeeded(size: CGSize) async {
+        let cacheKey = decodeCacheKey(size: size)
+        if Self.decodeCache[cacheKey] != nil { return }
+        guard let imageData, !imageData.isEmpty else { return }
+        let decoded = await Task.detached(priority: .utility) {
+            Self.decodedData(imageData, size: size)
+        }.value
+        guard let decoded else { return }
+        Self.decodeCache[cacheKey] = decoded
+        // 解码期间尺寸未再变化才更新显示，避免旧尺寸覆盖
+        if decodeCacheKey(size: size) == cacheKey {
+            self.imageData = decoded
+        }
+    }
+
+    /// 按展示尺寸下采样（ImageIO 缩略图解码，线程安全，可在后台执行）。
+    private static func decodedData(_ data: Data, size: CGSize) -> Data? {
+        guard !data.isEmpty, size.width > 0, size.height > 0 else { return data }
         let scale = UIScreen.main.scale
         let maxPixel = min(max(size.width, size.height) * scale, CoverImageCache.downsampledMaxPixel)
-        if let downsampled = CoverImageCache.downsample(data, maxPixel: maxPixel) {
-            return UIImage(data: downsampled)
-        }
-        return UIImage(data: data)
+        return CoverImageCache.downsample(data, maxPixel: maxPixel) ?? data
     }
 
     private func load() async {

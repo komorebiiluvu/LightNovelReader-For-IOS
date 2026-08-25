@@ -30,7 +30,10 @@ final class Wenku8Service: BookSourceService {
         return URLSession(configuration: config)
     }()
 
-    /// 目录缓存：bookID → [(cid, 标题, 卷名)]，fetchContent 依赖它
+    // 目录缓存：bookID → [(cid, 标题, 卷名)]，fetchContent 依赖它。
+    // 标记 @MainActor：实例由 AppStore(@MainActor) 唯一持有并调用，消除 SE-0338
+    // 隐式隔离依赖，保证多入口并发调用时对该字典的读写始终串行。
+    @MainActor
     private var chapterIndexCache: [String: [(cid: Int, title: String, volume: String?)]] = [:]
 
     // MARK: - 登录态（jieqi CMS 会话 cookie）
@@ -423,6 +426,7 @@ final class Wenku8Service: BookSourceService {
         )
     }
 
+    @MainActor
     private func chapterIndex(for book: Book, aid: Int) async throws -> [(cid: Int, title: String, volume: String?)] {
         if let cached = chapterIndexCache[book.id] {
             return cached
