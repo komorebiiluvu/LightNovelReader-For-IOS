@@ -44,6 +44,28 @@ struct SettingsView: View {
 
     var body: some View {
         List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("特别鸣谢", systemImage: "heart.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.accentPurple)
+                    Text("本应用为开源项目 LightNovelReader 的 iOS 移植版，深受其启发与指引，没有它就没有这个项目。感谢原作者 dmzz-yyhyy 与全体贡献者。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let url = URL(string: "https://github.com/dmzz-yyhyy/LightNovelReader") {
+                        Link(destination: url) {
+                            HStack(spacing: 4) {
+                                Text("LightNovelReader（Android 上游项目）")
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption2)
+                            }
+                            .font(.caption)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
             Section("外观") {
                 ForEach(ThemePreference.allCases) { theme in
                     Button {
@@ -155,28 +177,6 @@ struct SettingsView: View {
                 Text("离线与存储")
             } footer: {
                 Text("详情页「缓存全书」后可离线阅读。")
-            }
-
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("特别鸣谢", systemImage: "heart.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.accentPurple)
-                    Text("本项目深受开源项目 LightNovelReader 的启发与指引，没有它就没有这个项目。感谢作者 dmzz-yyhyy 与全体贡献者。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let url = URL(string: "https://github.com/dmzz-yyhyy/LightNovelReader") {
-                        Link(destination: url) {
-                            HStack(spacing: 4) {
-                                Text("LightNovelReader（Android 上游项目）")
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption2)
-                            }
-                            .font(.caption)
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
             }
 
             Section {

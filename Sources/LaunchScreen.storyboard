@@ -21,20 +21,31 @@
                                     <constraint firstAttribute="height" constant="88" id="iconH"/>
                                 </constraints>
                             </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="LightNovelReader" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="titleLabel">
+                            <stackView opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" axis="horizontal" alignment="firstBaseline" spacing="2" translatesAutoresizingMaskIntoConstraints="NO" id="titleStack">
                                 <rect key="frame" x="57" y="836" width="300" height="24"/>
-                                <fontDescription key="fontDescription" type="system" weight="medium" pointSize="18"/>
-                                <color key="textColor" red="0.2" green="0.2" blue="0.2" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                                <subviews>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="LightNovelReader" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="titleLabel">
+                                        <rect key="frame" x="0.0" y="0.0" width="174" height="24"/>
+                                        <fontDescription key="fontDescription" type="system" weight="medium" pointSize="18"/>
+                                        <color key="textColor" red="0.2" green="0.2" blue="0.2" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="for ios" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cursiveLabel">
+                                        <rect key="frame" x="176" y="3" width="48" height="21"/>
+                                        <fontDescription key="fontDescription" name="SnellRoundhand" family="Snell Roundhand" pointSize="17"/>
+                                        <color key="textColor" red="0.2" green="0.2" blue="0.2" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                            </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safeArea"/>
                         <color key="backgroundColor" red="0.99" green="0.97" blue="0.93" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="launchIcon" firstAttribute="centerX" secondItem="rootView" secondAttribute="centerX" id="iconCX"/>
-                            <constraint firstItem="launchIcon" firstAttribute="bottom" secondItem="titleLabel" secondAttribute="top" constant="-12" id="iconBottom"/>
-                            <constraint firstItem="titleLabel" firstAttribute="centerX" secondItem="rootView" secondAttribute="centerX" id="titleCX"/>
-                            <constraint firstItem="titleLabel" firstAttribute="bottom" secondItem="rootView" secondAttribute="bottom" constant="-60" id="titleBottom"/>
+                            <constraint firstItem="launchIcon" firstAttribute="bottom" secondItem="titleStack" secondAttribute="top" constant="-12" id="iconBottom"/>
+                            <constraint firstItem="titleStack" firstAttribute="centerX" secondItem="rootView" secondAttribute="centerX" id="titleCX"/>
+                            <constraint firstItem="titleStack" firstAttribute="bottom" secondItem="rootView" secondAttribute="bottom" constant="-60" id="titleBottom"/>
                         </constraints>
                     </view>
                 </viewController>

@@ -63,8 +63,11 @@ final class TabNavigationUITests: XCTestCase {
         tapTab(app, "设置")
         let navBar = app.navigationBars["设置"]
         XCTAssertTrue(navBar.waitForExistence(timeout: 5), "设置页应有导航栏")
-        // 设置页应有「数据源」区块
+        // 设置页应有「数据源」区块（「特别鸣谢」置顶后需滚动到可见）
         let dataSource = app.staticTexts["数据源"]
+        for _ in 0..<3 where !dataSource.exists {
+            app.swipeUp()
+        }
         XCTAssertTrue(dataSource.waitForExistence(timeout: 5), "设置页应显示「数据源」")
         snapshot(app, "tab-settings")
     }
