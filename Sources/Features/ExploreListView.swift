@@ -12,10 +12,10 @@ struct ExploreListView: View {
     @State private var lengthFilter: LengthFilter = .all
     @State private var tagSort: TagSort = .default
 
-    /// 动态列数：按屏幕宽度与目标最小封面宽计算，填满整行。
+    /// 动态列数：按容器宽度与目标最小封面宽计算，填满整行。
     /// 平板用更大的最小封面宽（宁可少几列，也要让每本书大到合适）。
-    private var columns: [GridItem] {
-        let width = UIScreen.main.bounds.width
+    private func columns(containerWidth: CGFloat) -> [GridItem] {
+        let width = containerWidth
         let minCellWidth: CGFloat = sizeClass == .regular ? 160 : 104
         let spacing: CGFloat = 14
         let count = max(2, Int((width - spacing) / (minCellWidth + spacing)))
@@ -49,21 +49,23 @@ struct ExploreListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 14) {
-                categoryChips
-                filters
-                content
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 14) {
+                    categoryChips
+                    filters
+                    content(containerWidth: proxy.size.width)
+                }
+                .padding()
             }
-            .padding()
-        }
-        .navigationTitle("书库浏览")
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable {
-            await store.loadExplore(category, refresh: true, sort: tagSort.suffix)
-        }
-        .task(id: loadKey) {
-            await store.loadExplore(category, sort: tagSort.suffix)
+            .navigationTitle("书库浏览")
+            .navigationBarTitleDisplayMode(.inline)
+            .refreshable {
+                await store.loadExplore(category, refresh: true, sort: tagSort.suffix)
+            }
+            .task(id: loadKey) {
+                await store.loadExplore(category, sort: tagSort.suffix)
+            }
         }
     }
 
@@ -204,7 +206,7 @@ struct ExploreListView: View {
     }
 
     @ViewBuilder
-    private var content: some View {
+    private func content(containerWidth: CGFloat) -> some View {
         let state = store.exploreState(category, sort: tagSort.suffix)
         if state.books.isEmpty && state.isLoading {
             VStack(spacing: 12) {
@@ -225,7 +227,7 @@ struct ExploreListView: View {
         } else if filteredBooks.isEmpty {
             emptyHint("当前筛选下没有结果")
         } else {
-            bookGrid(state, books: filteredBooks)
+            bookGrid(state, books: filteredBooks, containerWidth: containerWidth)
 
             if state.isLoading {
                 ProgressView().padding(.vertical, 18)
@@ -255,8 +257,8 @@ struct ExploreListView: View {
         .padding(.vertical, 60)
     }
 
-    private func bookGrid(_ state: AppStore.ExploreBrowseState, books: [Book]) -> some View {
-        LazyVGrid(columns: columns, spacing: 14) {
+    private func bookGrid(_ state: AppStore.ExploreBrowseState, books: [Book], containerWidth: CGFloat) -> some View {
+        LazyVGrid(columns: columns(containerWidth: containerWidth), spacing: 14) {
             ForEach(books) { book in
                 NavigationLink {
                     BookDetailView(book: book)

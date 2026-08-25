@@ -6,10 +6,10 @@ struct BookshelfView: View {
 
     @State private var showShelfManager = false
 
-    /// 动态列数：按屏幕宽度与目标最小封面宽计算，填满整行。
+    /// 动态列数：按容器宽度与目标最小封面宽计算，填满整行。
     /// 平板用更大的最小封面宽（宁可少几列，也要让每本书大到合适）。
-    private var columns: [GridItem] {
-        let width = UIScreen.main.bounds.width
+    private func columns(containerWidth: CGFloat) -> [GridItem] {
+        let width = containerWidth
         let minCellWidth: CGFloat = sizeClass == .regular ? 160 : 104
         let spacing: CGFloat = 12
         let count = max(2, Int((width - spacing) / (minCellWidth + spacing)))
@@ -84,13 +84,15 @@ struct BookshelfView: View {
         } else if store.filteredBooks.isEmpty {
             emptyState
         } else {
-            ScrollView {
-                bookGrid
-                    .padding()
-            }
-            .refreshable {
-                await store.reload()
-                await store.checkForUpdates(force: true)
+            GeometryReader { proxy in
+                ScrollView {
+                    bookGrid(containerWidth: proxy.size.width)
+                        .padding()
+                }
+                .refreshable {
+                    await store.reload()
+                    await store.checkForUpdates(force: true)
+                }
             }
         }
     }
@@ -202,8 +204,8 @@ struct BookshelfView: View {
 
     // MARK: - 网格
 
-    private var bookGrid: some View {
-        LazyVGrid(columns: columns, spacing: 16) {
+    private func bookGrid(containerWidth: CGFloat) -> some View {
+        LazyVGrid(columns: columns(containerWidth: containerWidth), spacing: 16) {
             ForEach(store.filteredBooks) { book in
                 NavigationLink {
                     BookDetailView(book: book)

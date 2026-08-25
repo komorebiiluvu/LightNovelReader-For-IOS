@@ -28,39 +28,41 @@ struct ExploreView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 22) {
-                searchField
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 22) {
+                    searchField
 
-                if query.isEmpty {
-                    if !store.searchHistory.isEmpty {
-                        historySection
+                    if query.isEmpty {
+                        if !store.searchHistory.isEmpty {
+                            historySection
+                        }
+                        normalContent(containerWidth: proxy.size.width)
+                    } else if usingServiceResults {
+                        serviceResults
+                    } else {
+                        localResultsSection
                     }
-                    normalContent
-                } else if usingServiceResults {
-                    serviceResults
-                } else {
-                    localResultsSection
+                }
+                .padding()
+            }
+            .refreshable {
+                await store.reload()
+                if let categories = store.exploreCategories {
+                    for category in categories {
+                        await store.loadExplore(category, refresh: true)
+                    }
                 }
             }
-            .padding()
-        }
-        .refreshable {
-            await store.reload()
-            if let categories = store.exploreCategories {
-                for category in categories {
-                    await store.loadExplore(category, refresh: true)
+            .task {
+                if let categories = store.exploreCategories {
+                    for category in categories {
+                        await store.loadExplore(category)
+                    }
                 }
+                await store.loadHomeBlocks()
+                await store.loadTagList()
             }
-        }
-        .task {
-            if let categories = store.exploreCategories {
-                for category in categories {
-                    await store.loadExplore(category)
-                }
-            }
-            await store.loadHomeBlocks()
-            await store.loadTagList()
         }
         .navigationTitle("探索")
     }
@@ -110,7 +112,7 @@ struct ExploreView: View {
 
     // MARK: - 探索主页（上游同款三大板块：首页 / 全部 / 分类）
 
-    private var normalContent: some View {
+    private func normalContent(containerWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 22) {
             if let loadError = store.loadError {
                 SourceErrorBanner(message: loadError) {
@@ -126,8 +128,8 @@ struct ExploreView: View {
             } else {
                 segmentedTabs
                 switch exploreTab {
-                case .home: homeTab
-                case .all: allTab
+                case .home: homeTab(containerWidth: containerWidth)
+                case .all: allTab(containerWidth: containerWidth)
                 case .tags: tagsTab
                 }
             }
@@ -157,7 +159,7 @@ struct ExploreView: View {
     }
 
     // 首页板块：wenku8 首页推荐块（新书风云榜/本周会员推荐榜/最近更新）
-    private var homeTab: some View {
+    private func homeTab(containerWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             if store.homeBlocks.isEmpty, store.homeBlocksError != nil {
                 SourceErrorBanner(message: store.homeBlocksError ?? "") {
@@ -183,7 +185,7 @@ struct ExploreView: View {
                                     NavigationLink {
                                         BookDetailView(book: book)
                                     } label: {
-                                        exploreCarouselCell(book, width: carouselCoverWidth)
+                                        exploreCarouselCell(book, width: carouselCoverWidth(containerWidth: containerWidth))
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -197,10 +199,10 @@ struct ExploreView: View {
     }
 
     // 全部板块：6 个栏目
-    private var allTab: some View {
+    private func allTab(containerWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 26) {
             ForEach(store.exploreCategories ?? []) { category in
-                exploreSection(category)
+                exploreSection(category, containerWidth: containerWidth)
             }
         }
     }
@@ -250,21 +252,18 @@ struct ExploreView: View {
         .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    /// 首页横排封面宽度：随屏幕宽度动态计算，iPad 上放大以填满一行
-    private var carouselCoverWidth: CGFloat {
-        let width = UIScreen.main.bounds.width
+    /// 首页横排封面宽度：随容器宽度动态计算，iPad 上放大以填满一行
+    private func carouselCoverWidth(containerWidth: CGFloat) -> CGFloat {
+        let width = containerWidth
         let divisor: CGFloat = sizeClass == .regular ? 6.5 : 3.6
         return min(max(width / divisor, 96), 200)
     }
-    private var carouselCoverHeight: CGFloat {
-        carouselCoverWidth * 4 / 3
-    }
 
-    private func exploreSection(_ category: ExploreCategory) -> some View {
+    private func exploreSection(_ category: ExploreCategory, containerWidth: CGFloat) -> some View {
         let state = store.exploreState(category)
         let rowBooks = Array(state.books.prefix(8))
-        let coverWidth = carouselCoverWidth
-        let coverHeight = carouselCoverHeight
+        let coverWidth = carouselCoverWidth(containerWidth: containerWidth)
+        let coverHeight = coverWidth * 4 / 3
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(category.title).font(.headline)
