@@ -59,7 +59,7 @@ LightNovelReader (iOS) 是一款开源的轻小说阅读软件，使用 **Swift/
 - **数据模型**：`BookInformation`/`BookVolumes`/`ChapterContent`/`UserReadingData` 等，
   包名与上游 `:api` 模块一致，同步上游更新时可直接 diff 复制。
 - **wenku8 抓取器**：Ktor(Darwin) + Ksoup + 手写 GBK 解码（Kotlin/Native 无内置 GB18030）。
-- **文档**：[SYNC.md](SYNC.md)（上游同步手册）、[docs/KMP-TROUBLESHOOTING.md](docs/KMP-TROUBLESHOOTING.md)（踩坑记录）、[CHANGELOG.md](CHANGELOG.md)（版本记录）。
+- **文档**：[SYNC.md](SYNC.md)（上游同步手册）、[docs/KMP-TROUBLESHOOTING.md](docs/KMP-TROUBLESHOOTING.md)（排错手册）、[CHANGELOG.md](CHANGELOG.md)（版本记录）。
 
 ## 下载
 

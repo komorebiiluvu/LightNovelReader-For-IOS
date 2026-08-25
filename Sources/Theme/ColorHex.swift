@@ -47,8 +47,8 @@ enum AccentTheme: String, CaseIterable, Identifiable {
 
     /// 当前用户选择的主题色（从 UserDefaults 读取）
     static var current: AccentTheme {
-        let raw = UserDefaults.standard.string(forKey: "accentTheme") ?? purple.rawValue
-        return AccentTheme(rawValue: raw) ?? .purple
+        let raw = UserDefaults.standard.string(forKey: "accentTheme") ?? blue.rawValue
+        return AccentTheme(rawValue: raw) ?? .blue
     }
 
     /// 当前主题色（按系统明暗返回对应色值）

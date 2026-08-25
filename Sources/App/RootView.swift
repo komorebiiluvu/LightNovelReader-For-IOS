@@ -4,7 +4,7 @@ import UIKit
 struct RootView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showSplash = true
-    @AppStorage("accentTheme") private var accentTheme = AccentTheme.purple.rawValue
+    @AppStorage("accentTheme") private var accentTheme = AccentTheme.blue.rawValue
 
     var body: some View {
         ZStack {

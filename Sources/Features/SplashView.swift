@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 应用内开屏遮罩：与 LaunchScreen.storyboard 视觉一致（米白背景 + 底部中央图标 + 文字）。
-/// 用于在数据加载期间平滑展示，加载完成后淡出。
+/// 图标/文字固定在底部（bottom 60），与 storyboard 的约束完全对齐，避免切换时闪动。
 struct SplashView: View {
     var body: some View {
         VStack {

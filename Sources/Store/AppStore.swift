@@ -38,14 +38,14 @@ enum ShelfSort: String, CaseIterable, Identifiable {
 
 /// 阅读器偏好，跨书籍共享并持久化
 struct ReaderPreferences: Codable {
-    var fontSize: CGFloat = 17
+    var fontSize: CGFloat = 22
     var lineSpacing: CGFloat = 8
     var backgroundIndex: Int = 0
     var mode: ReaderMode = .flip
     var fontFamily: ReaderFontFamily = .system
     var bold: Bool = false
-    var marginLeft: CGFloat = 24
-    var marginRight: CGFloat = 24
+    var marginLeft: CGFloat = 35
+    var marginRight: CGFloat = 35
     var marginTop: CGFloat = 48
     var marginBottom: CGFloat = 48
 
@@ -53,7 +53,7 @@ struct ReaderPreferences: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        fontSize = try container.decodeIfPresent(CGFloat.self, forKey: .fontSize) ?? 17
+        fontSize = try container.decodeIfPresent(CGFloat.self, forKey: .fontSize) ?? 22
         lineSpacing = try container.decodeIfPresent(CGFloat.self, forKey: .lineSpacing) ?? 8
         backgroundIndex = try container.decodeIfPresent(Int.self, forKey: .backgroundIndex) ?? 0
         mode = try container.decodeIfPresent(ReaderMode.self, forKey: .mode) ?? .flip

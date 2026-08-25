@@ -196,7 +196,7 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                     }
                 }
-                if let url = URL(string: "https://github.com/dmzz-yyhyy/LightNovelReader") {
+                if let url = URL(string: "https://github.com/komorebiiluvu/LightNovelReader-For-IOS") {
                     Link(destination: url) {
                         HStack {
                             Text("GitHub 仓库")

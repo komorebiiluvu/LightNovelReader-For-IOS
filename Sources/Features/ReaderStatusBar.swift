@@ -21,11 +21,14 @@ struct VerticalBattery: View {
                 .frame(width: 11, height: 18)
                 .overlay(alignment: .bottom) {
                     GeometryReader { geo in
-                        RoundedRectangle(cornerRadius: 1.5)
-                            // 电量低时变红提示
-                            .fill(unknown ? color.opacity(0.35) : (fill < 0.2 ? Color.red : color.opacity(0.9)))
-                            .frame(height: max(1.5, (geo.size.height - 3.5) * fill))
-                            .padding(1.75)
+                        VStack {
+                            Spacer(minLength: 0)
+                            RoundedRectangle(cornerRadius: 1.5)
+                                // 电量低时变红提示；填充从底部向上，锚定 bottom，不偏移
+                                .fill(unknown ? color.opacity(0.35) : (fill < 0.2 ? Color.red : color.opacity(0.9)))
+                                .frame(height: max(1.5, (geo.size.height - 3.5) * fill))
+                        }
+                        .padding(1.75)
                     }
                 }
                 .overlay {
