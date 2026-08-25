@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) dmzz-yyhyy (夜鱼很业余) and contributors of LightNovelReader
+ *   (https://github.com/dmzz-yyhyy/LightNovelReader)
+ * Copyright (c) 2026 komorebiiluvu (iOS Port / KMP Adapter)
+ *
+ * Ported from the upstream Android project's wenku8 data layer.
+ * Modified by komorebiiluvu 2026 for Kotlin Multiplatform.
+ * Licensed under the Apache License, Version 2.0.
+ */
+
 package io.nightfish.lightnovelreader.api
 
 import io.nightfish.lightnovelreader.api.book.BookInformation
