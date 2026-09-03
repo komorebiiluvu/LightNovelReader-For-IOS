@@ -336,11 +336,8 @@ struct BookDetailView: View {
 
     private func switchTo(_ book: Book) {
         guard book.id != current.id else { return }
-        // 切到同名书的另一个源版本：更新当前展示的书
+        // current.id 改变后由 .task(id:) 统一加载，避免同一目录发起两次请求。
         activeBookID = book.id
-        Task {
-            await store.loadChapters(for: book)
-        }
     }
 
     private func infoLine(_ label: String, _ value: String) -> some View {

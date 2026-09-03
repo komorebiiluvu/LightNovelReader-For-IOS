@@ -3,17 +3,18 @@ import UIKit
 
 /// 崩溃报告捕获器。
 ///
-/// 捕获两类崩溃并记录到沙盒文件（可在设置页导出）：
-/// 1. 未捕获的 NSException（Objective-C/Swift 异常）
-/// 2. 崩溃信号（SIGABRT/SIGSEGV/SIGBUS/SIGILL 等）
+/// 捕获未处理的 NSException 并记录到沙盒文件（可在设置页导出）。
 ///
-/// 注意：崩溃捕获只能"尽量"记录崩溃时的状态（写文件在信号 handler 里受限），
-/// 无法阻止崩溃本身。捕获到崩溃后，下次启动会提示有上次崩溃报告可导出。
+/// 不拦截 SIGSEGV/SIGABRT 等 POSIX 信号：信号处理器中调用 Foundation、分配内存或
+/// 写普通文件都不是 async-signal-safe，容易二次崩溃或反复触发同一故障指令。
+/// 若后续需要完整的 Swift/native 崩溃堆栈，应接入 PLCrashReporter/KSCrash 或 MetricKit。
 final class CrashReporter {
     static let shared = CrashReporter()
 
     private let crashDir: URL
-    private var previousHandler: ((NSException) -> Void)?
+    private var previousHandler: NSUncaughtExceptionHandler?
+    private var installed = false
+    private let maxCrashFiles = 20
 
     private init() {
         let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -23,6 +24,8 @@ final class CrashReporter {
 
     /// 安装崩溃捕获（app 启动时调用一次）
     func install() {
+        guard !installed else { return }
+        installed = true
         previousHandler = NSGetUncaughtExceptionHandler()
         NSSetUncaughtExceptionHandler { exception in
             CrashReporter.shared.writeCrash(
@@ -30,31 +33,8 @@ final class CrashReporter {
                 reason: "\(exception.name.rawValue): \(exception.reason ?? "")",
                 stack: exception.callStackSymbols.joined(separator: "\n")
             )
+            CrashReporter.shared.previousHandler?(exception)
         }
-        installSignalHandlers()
-    }
-
-    private func installSignalHandlers() {
-        let signals: [Int32] = [SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGFPE, SIGTRAP]
-        for sig in signals {
-            signal(sig) { s in
-                CrashReporter.shared.writeSignalCrash(signal: s)
-            }
-        }
-    }
-
-    private func writeSignalCrash(signal: Int32) {
-        let name: String
-        switch signal {
-        case SIGABRT: name = "SIGABRT"
-        case SIGSEGV: name = "SIGSEGV"
-        case SIGBUS: name = "SIGBUS"
-        case SIGILL: name = "SIGILL"
-        case SIGFPE: name = "SIGFPE"
-        case SIGTRAP: name = "SIGTRAP"
-        default: name = "SIGNAL(\(signal))"
-        }
-        writeCrash(name: name, reason: "信号 \(name)", stack: Thread.callStackSymbols.joined(separator: "\n"))
     }
 
     private func writeCrash(name: String, reason: String, stack: String) {
@@ -79,6 +59,13 @@ final class CrashReporter {
         """
 
         try? header.write(to: file, atomically: true, encoding: String.Encoding.utf8)
+        pruneCrashFilesIfNeeded()
+    }
+
+    private func pruneCrashFilesIfNeeded() {
+        for file in crashFiles.dropFirst(maxCrashFiles) {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
     /// 已记录的崩溃报告列表（按时间倒序）

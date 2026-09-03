@@ -12,7 +12,8 @@ final class Wenku8Service: BookSourceService {
     static let bundledPassword = "komorebi041016"
 
     private static let host = "https://www.wenku8.net"
-    private static let coverHost = "http://img.wenku8.com"
+    // 图床支持 HTTPS/HTTP2；避免明文 HTTP 连接和 ATS 例外路径带来的额外握手/调度开销。
+    private static let coverHost = "https://img.wenku8.com"
 
     /// GBK → String.Encoding(GB18030 是 GBK 超集)
     private static let gbk: String.Encoding = {
@@ -206,12 +207,28 @@ final class Wenku8Service: BookSourceService {
     func fetchExplorePage(_ category: ExploreCategory, page: Int, sortSuffix: String = "") async throws -> (books: [Book], totalPages: Int) {
         guard isLoggedIn else { throw BookSourceError.loginRequired }
         let html = try await getWithRetry(category.url(page: page, sortSuffix: sortSuffix))
-        var totalPages = 1
-        if let raw = Self.firstCapture(pattern: "pagestats[^>]*>\\s*\\d+/(\\d+)", in: html),
-           let parsed = Int(raw) {
-            totalPages = parsed
-        }
+        let totalPages = Self.exploreTotalPages(in: html)
         return (parseSearchResultCards(html), totalPages)
+    }
+
+    /// 站点分页栏曾在不同页面使用 pagestats、pagelink/em 等不同结构；
+    /// 同时取状态文字与所有页码链接的最大值，避免结构微调后误判为只有 1 页。
+    static func exploreTotalPages(in html: String) -> Int {
+        let patterns = [
+            "pagestats[^>]*>\\s*\\d+\\s*/\\s*(\\d+)",
+            "id=[\"']pagelink[\"'][^>]*>[\\s\\S]{0,1200}?<em[^>]*>\\s*\\d+\\s*/\\s*(\\d+)",
+        ]
+        let stated = patterns.compactMap { firstCapture(pattern: $0, in: html).flatMap(Int.init) }.max() ?? 1
+        guard let pageRegex = try? NSRegularExpression(pattern: "(?:[?&]|amp;)page=(\\d+)") else {
+            return max(stated, 1)
+        }
+        let range = NSRange(html.startIndex..., in: html)
+        let linked = pageRegex.matches(in: html, range: range).compactMap { match -> Int? in
+            guard match.numberOfRanges > 1,
+                  let valueRange = Range(match.range(at: 1), in: html) else { return nil }
+            return Int(html[valueRange])
+        }.max() ?? 1
+        return max(stated, linked, 1)
     }
 
     /// 带登录态 + 指数退避重试的页面请求（探索/榜单等动态页在真机上偶发超时）

@@ -8,10 +8,6 @@ struct ReadingView: View {
         store.recentBooks
     }
 
-    private var updatedBooks: [Book] {
-        store.updatedBooks
-    }
-
     var body: some View {
         Group {
             if recentBooks.isEmpty {
@@ -25,14 +21,8 @@ struct ReadingView: View {
                         ForEach(recentBooks) { book in
                             ReadingRow(book: book) {
                                 readerConfig = ReaderConfig(book: book, chapter: book.lastChapter)
-                            }
-                        }
-
-                        if !updatedBooks.isEmpty {
-                            sectionHeader("更新提醒")
-
-                            ForEach(updatedBooks) { book in
-                                updateRow(book)
+                            } onClearUpdate: {
+                                store.clearUpdateFlag(for: book.id)
                             }
                         }
                     }
@@ -63,32 +53,6 @@ struct ReadingView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func updateRow(_ book: Book) -> some View {
-        NavigationLink {
-            BookDetailView(book: book)
-        } label: {
-            HStack(spacing: 12) {
-                BookCoverView(book: book, showsProgress: false, shadowRadius: 0)
-                    .frame(width: 38, height: 50)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(book.title)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Text("\(book.author) · 更新至第 \(book.totalChapters) 章")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Circle().fill(.yellow).frame(width: 7, height: 7)
-            }
-            .padding(12)
-            .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-
     private func sectionHeader(_ title: String) -> some View {
         HStack {
             Text(title).font(.headline)
@@ -100,6 +64,7 @@ struct ReadingView: View {
 private struct ReadingRow: View {
     let book: Book
     let onContinue: () -> Void
+    var onClearUpdate: () -> Void = {}
 
     /// 第一小行：作者 · 连载状态
     private var bookSubtitle: String {
@@ -116,9 +81,8 @@ private struct ReadingRow: View {
                 BookDetailView(book: book)
             } label: {
                 HStack(spacing: 14) {
-                    BookCoverView(book: book, showsProgress: false, shadowRadius: 0)
+                    BookCoverView(book: book, showsProgress: false, showsUpdateDot: book.hasUpdate, shadowRadius: 0)
                         .frame(width: 64, height: 86)
-
                     VStack(alignment: .leading, spacing: 6) {
                         Text(book.title)
                             .font(.body)
@@ -138,6 +102,12 @@ private struct ReadingRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            // 点进最近阅读的书：若该书有更新提醒，视为已知晓并清除
+            .simultaneousGesture(TapGesture().onEnded {
+                if book.hasUpdate {
+                    onClearUpdate()
+                }
+            })
 
             Spacer(minLength: 4)
 

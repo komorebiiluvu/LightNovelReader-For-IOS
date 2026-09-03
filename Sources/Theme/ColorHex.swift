@@ -21,6 +21,9 @@ enum AccentTheme: String, CaseIterable, Identifiable {
     case orange = "橙"
     case red = "红"
 
+    static let storageKey = "accentTheme"
+    static let defaultValue: AccentTheme = .blue
+
     var id: String { rawValue }
 
     var lightHex: UInt {
@@ -47,8 +50,12 @@ enum AccentTheme: String, CaseIterable, Identifiable {
 
     /// 当前用户选择的主题色（从 UserDefaults 读取）
     static var current: AccentTheme {
-        let raw = UserDefaults.standard.string(forKey: "accentTheme") ?? blue.rawValue
-        return AccentTheme(rawValue: raw) ?? .blue
+        resolve(UserDefaults.standard.string(forKey: storageKey))
+    }
+
+    /// 所有入口共用同一个默认值；无值或旧数据损坏时都回到蓝色。
+    static func resolve(_ rawValue: String?) -> AccentTheme {
+        rawValue.flatMap(AccentTheme.init(rawValue:)) ?? defaultValue
     }
 
     /// 当前主题色（按系统明暗返回对应色值）

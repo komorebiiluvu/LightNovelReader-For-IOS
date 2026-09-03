@@ -42,12 +42,12 @@ struct ReaderPreferences: Codable {
     var lineSpacing: CGFloat = 8
     var backgroundIndex: Int = 0
     var mode: ReaderMode = .flip
-    var fontFamily: ReaderFontFamily = .system
+    var fontFamily: ReaderFontFamily = .kaiti
     var bold: Bool = false
     var marginLeft: CGFloat = 35
     var marginRight: CGFloat = 35
-    var marginTop: CGFloat = 48
-    var marginBottom: CGFloat = 48
+    var marginTop: CGFloat = 72
+    var marginBottom: CGFloat = 24
 
     init() {}
 
@@ -57,12 +57,12 @@ struct ReaderPreferences: Codable {
         lineSpacing = try container.decodeIfPresent(CGFloat.self, forKey: .lineSpacing) ?? 8
         backgroundIndex = try container.decodeIfPresent(Int.self, forKey: .backgroundIndex) ?? 0
         mode = try container.decodeIfPresent(ReaderMode.self, forKey: .mode) ?? .flip
-        fontFamily = try container.decodeIfPresent(ReaderFontFamily.self, forKey: .fontFamily) ?? .system
+        fontFamily = try container.decodeIfPresent(ReaderFontFamily.self, forKey: .fontFamily) ?? .kaiti
         bold = try container.decodeIfPresent(Bool.self, forKey: .bold) ?? false
-        marginLeft = try container.decodeIfPresent(CGFloat.self, forKey: .marginLeft) ?? 24
-        marginRight = try container.decodeIfPresent(CGFloat.self, forKey: .marginRight) ?? 24
-        marginTop = try container.decodeIfPresent(CGFloat.self, forKey: .marginTop) ?? 48
-        marginBottom = try container.decodeIfPresent(CGFloat.self, forKey: .marginBottom) ?? 48
+        marginLeft = try container.decodeIfPresent(CGFloat.self, forKey: .marginLeft) ?? 35
+        marginRight = try container.decodeIfPresent(CGFloat.self, forKey: .marginRight) ?? 35
+        marginTop = try container.decodeIfPresent(CGFloat.self, forKey: .marginTop) ?? 72
+        marginBottom = try container.decodeIfPresent(CGFloat.self, forKey: .marginBottom) ?? 24
     }
 }
 
@@ -201,12 +201,25 @@ final class AppStore: ObservableObject {
     private var sourceOverrideByID: [String: String]
     private var contentCache: [String: ChapterContent] = [:]
     private var contentCacheOrder: [String] = []
+    private var chapterLoadTasks: [String: Task<[ChapterItem]?, Never>] = [:]
+    /// 每个探索栏目当前有效请求的标识。刷新会使旧请求的迟到结果失效。
+    private var exploreRequestIDs: [String: UUID] = [:]
     private var bootstrapped = false
     /// 后台登录重试是否已执行过（避免每次启动重复排队）
     private var bootstrappedRetryDone = false
     private var lastUpdateCheckAt: Date?
+    private var updateCheckTask: Task<Void, Never>?
+    private var isCheckingForUpdates = false
     private var cancellables: Set<AnyCancellable> = []
     private var persistDebounceTask: Task<Void, Never>?
+    /// `exploreBrowse` 只包含远端分页结果和加载状态，不属于 AppStateSnapshot。
+    /// 标记它的下一次发布，避免无意义地全量编码书库和阅读统计。
+    private var suppressNextAutomaticPersist = false
+
+    private struct ChapterUpdateResult {
+        let book: Book
+        let chapters: [ChapterItem]
+    }
 
     init(services: [BookSourceService] = AppStore.makeDefaultServices()) {
         let snapshot = AppStateSnapshot.load()
@@ -257,6 +270,10 @@ final class AppStore: ObservableObject {
         objectWillChange
             .sink { [weak self] _ in
                 guard let self else { return }
+                if self.suppressNextAutomaticPersist {
+                    self.suppressNextAutomaticPersist = false
+                    return
+                }
                 self.persistDebounceTask?.cancel()
                 let task = Task { @MainActor [weak self] in
                     try? await Task.sleep(nanoseconds: 300_000_000)
@@ -266,6 +283,15 @@ final class AppStore: ObservableObject {
                 self.persistDebounceTask = task
             }
             .store(in: &cancellables)
+    }
+
+    /// 发布探索页瞬时状态，但不触发与它无关的 AppStateSnapshot 落盘。
+    private func setExploreBrowseState(_ state: ExploreBrowseState?, forKey key: String) {
+        suppressNextAutomaticPersist = true
+        exploreBrowse[key] = state
+        // `@Published` 当前同步发送 objectWillChange；仍显式复位，防止未来实现变化时
+        // 标记泄漏并误跳过下一次真正需要持久化的状态更新。
+        suppressNextAutomaticPersist = false
     }
 
     // MARK: - 持久化
@@ -321,13 +347,25 @@ final class AppStore: ObservableObject {
         await ensureWenku8Login(allowRetry: false)
         scheduleBackgroundLoginRetry()
         await reload()
-        await checkForUpdates()
+        scheduleUpdateCheck()
         // 启动预加载：后台并行拉探索数据，不阻塞 splash（失败/登录重试都在后台，用户无感）
         Task { @MainActor [weak self] in
             await self?.prewarmExplore()
         }
-        CoverImageCache.shared.pruneOlderThan(days: 14)
+        Task.detached(priority: .utility) {
+            CoverImageCache.shared.pruneOlderThan(days: 14)
+        }
         prewarmCoverCache()
+    }
+
+    /// 更新检查不参与开屏等待；大量书架或弱网时也能先进入 App。
+    private func scheduleUpdateCheck() {
+        guard updateCheckTask == nil else { return }
+        updateCheckTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.checkForUpdates()
+            self.updateCheckTask = nil
+        }
     }
 
     /// 后台自动重试登录（不阻塞 UI；网络抖动/站点短暂不可达时自愈，用户无需手动登录）
@@ -351,6 +389,8 @@ final class AppStore: ObservableObject {
         if let categories = exploreCategories {
             await withTaskGroup(of: Void.self) { group in
                 for category in categories {
+                    // 这里只预取书目数据，不下载 6 个栏目共几十张不可见封面；
+                    // 否则这些后台请求会抢占用户当前页面的图片连接。
                     group.addTask { await self.loadExplore(category) }
                 }
             }
@@ -378,36 +418,78 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// 预热首屏封面（前 8 本），下次启动秒开
+    /// 低优先级预热书架首行封面，下次启动可直接命中缓存。
     private func prewarmCoverCache() {
-        let urls = books.prefix(8).compactMap(\.coverURL)
+        let urls = books.prefix(CoverLoadingPolicy.defaultPrewarmLimit).compactMap(\.coverURL)
         CoverImageCache.shared.prewarm(urls)
     }
 
     /// 更新检测：重新拉取书架内各书的目录，章节数比上次已知的多则点亮“有更新”角标。
     /// 启动时自动执行（15 分钟节流），书架下拉刷新时强制执行。
     func checkForUpdates(force: Bool = false) async {
+        guard !isCheckingForUpdates else { return }
         if !force, let last = lastUpdateCheckAt, Date().timeIntervalSince(last) < 15 * 60 { return }
+        isCheckingForUpdates = true
+        defer { isCheckingForUpdates = false }
         lastUpdateCheckAt = Date()
 
         let shelfIDs = savedIDs.union(shelves.flatMap(\.bookIDs))
-        for id in shelfIDs {
-            guard let book = book(withID: id), let service = services[book.source] else { continue }
-            guard let freshChapters = try? await service.fetchChapters(for: book) else { continue }
+        let candidates: [(Book, BookSourceService)] = shelfIDs.compactMap { id in
+            guard let book = book(withID: id), let service = services[book.source] else { return nil }
+            return (book, service)
+        }
 
-            if let known = knownTotalChaptersByID[id], freshChapters.count > known,
-               let index = books.firstIndex(where: { $0.id == id }) {
-                books[index].hasUpdate = true
+        // 文库站点不适合高并发；最多同时检查两本，兼顾速度与限流。
+        await withTaskGroup(of: ChapterUpdateResult?.self) { group in
+            var next = 0
+            let concurrency = min(2, candidates.count)
+            while next < concurrency {
+                let (book, service) = candidates[next]
+                next += 1
+                group.addTask {
+                    guard let chapters = try? await service.fetchChapters(for: book) else { return nil }
+                    return ChapterUpdateResult(book: book, chapters: chapters)
+                }
             }
-            knownTotalChaptersByID[id] = freshChapters.count
-            chaptersByBook[id] = freshChapters
-            await disk.storeChapters(freshChapters, bookID: id, source: book.source)
 
-            if let index = books.firstIndex(where: { $0.id == id }),
-               books[index].totalChapters != freshChapters.count {
-                books[index].totalChapters = freshChapters.count
-                books[index].lastChapter = Self.clampChapter(books[index].lastChapter, total: freshChapters.count)
+            while let result = await group.next() {
+                if let result {
+                    await applyChapterUpdate(result)
+                }
+                guard !Task.isCancelled else {
+                    group.cancelAll()
+                    continue
+                }
+                if next < candidates.count {
+                    let (book, service) = candidates[next]
+                    next += 1
+                    group.addTask {
+                        guard let chapters = try? await service.fetchChapters(for: book) else { return nil }
+                        return ChapterUpdateResult(book: book, chapters: chapters)
+                    }
+                }
             }
+        }
+    }
+
+    private func applyChapterUpdate(_ result: ChapterUpdateResult) async {
+        let id = result.book.id
+        let freshChapters = result.chapters
+        if let known = knownTotalChaptersByID[id], freshChapters.count > known,
+           let index = books.firstIndex(where: { $0.id == id }) {
+            books[index].hasUpdate = true
+        }
+        knownTotalChaptersByID[id] = freshChapters.count
+        chaptersByBook[id] = freshChapters
+        await disk.storeChapters(freshChapters, bookID: id, source: result.book.source)
+
+        if let index = books.firstIndex(where: { $0.id == id }),
+           books[index].totalChapters != freshChapters.count {
+            books[index].totalChapters = freshChapters.count
+            books[index].lastChapter = Self.clampChapter(
+                books[index].lastChapter,
+                total: freshChapters.count
+            )
         }
     }
 
@@ -444,6 +526,7 @@ final class AppStore: ObservableObject {
         submittedTerm = ""
         searchError = nil
         exploreBrowse = [:]
+        exploreRequestIDs.removeAll()
         homeBlocks = []
         homeBlocksError = nil
         tagList = []
@@ -493,17 +576,39 @@ final class AppStore: ObservableObject {
 
     func loadChapters(for book: Book) async {
         guard let service = services[book.source] else { return }
-        if let existing = chaptersByBook[book.id], existing.count == book.totalChapters, book.totalChapters > 0 {
+        if let existing = chaptersByBook[book.id], !existing.isEmpty,
+           book.totalChapters == 0 || existing.count == book.totalChapters {
             return
         }
-        var chapters = await disk.chapters(bookID: book.id, source: book.source)
-        if chapters == nil {
-            chapters = try? await service.fetchChapters(for: book)
-            if let chapters {
-                await disk.storeChapters(chapters, bookID: book.id, source: book.source)
+
+        let taskKey = "\(book.source)#\(book.id)"
+        let task: Task<[ChapterItem]?, Never>
+        if let existing = chapterLoadTasks[taskKey] {
+            task = existing
+        } else {
+            let diskCache = disk
+            task = Task { [diskCache] in
+                if let cached = await diskCache.chapters(bookID: book.id, source: book.source), !cached.isEmpty {
+                    return cached
+                }
+                guard let fetched = try? await service.fetchChapters(for: book), !fetched.isEmpty else {
+                    return nil
+                }
+                await diskCache.storeChapters(fetched, bookID: book.id, source: book.source)
+                return fetched
             }
+            chapterLoadTasks[taskKey] = task
         }
-        guard let items = chapters, !items.isEmpty else { return }
+
+        let items = await task.value
+        if chapterLoadTasks[taskKey] != nil {
+            chapterLoadTasks[taskKey] = nil
+        }
+        guard let items, !items.isEmpty else { return }
+        applyLoadedChapters(items, to: book)
+    }
+
+    private func applyLoadedChapters(_ items: [ChapterItem], to book: Book) {
         chaptersByBook[book.id] = items
         // 真实书源的 fetchBooks 不知道章节数，拿到目录后回填总章数
         if let index = books.firstIndex(where: { $0.id == book.id }) {
@@ -553,14 +658,24 @@ final class AppStore: ObservableObject {
     private func resolveImages(_ urls: [String], book: Book, chapterIndex: Int) async -> [String] {
         var result: [String] = []
         for (offset, urlString) in urls.enumerated() {
-            let name = "\(chapterIndex)-\(offset)-\(urlString.hashValue.magnitude)"
-            if let local = await disk.imageURL(bookID: book.id, source: book.source, name: name) {
+            let name = Self.offlineImageName(chapterIndex: chapterIndex, offset: offset, urlString: urlString)
+            let legacyPrefix = "\(chapterIndex)-\(offset)-"
+            if let local = await disk.imageURL(
+                bookID: book.id,
+                source: book.source,
+                name: name,
+                legacyPrefix: legacyPrefix
+            ) {
                 result.append(local.absoluteString)
             } else {
                 result.append(urlString)
             }
         }
         return result
+    }
+
+    nonisolated static func offlineImageName(chapterIndex: Int, offset: Int, urlString: String) -> String {
+        "\(chapterIndex)-\(offset)-\(StableHash.hex(urlString).prefix(24))"
     }
 
     private func cache(_ content: ChapterContent, forKey key: String) {
@@ -579,6 +694,8 @@ final class AppStore: ObservableObject {
     /// 书库浏览状态（按栏目，排序不同分开缓存）
     struct ExploreBrowseState: Equatable {
         var books: [Book] = []
+        /// 随分页增量维护，避免每次追加都在主线程重新扫描全部历史书目。
+        var bookIDs: Set<String> = []
         var loadedPages = 0
         var totalPages = 1
         var isLoading = false
@@ -635,10 +752,10 @@ final class AppStore: ObservableObject {
                 defaults.set(data, forKey: pagePrefix + key)
             }
         }
-        static func loadExplorePage(_ key: String) -> [Book]? {
+        static func loadExplorePage(_ key: String) -> PageCache? {
             guard let data = defaults.data(forKey: pagePrefix + key),
                   let cache = try? JSONDecoder().decode(PageCache.self, from: data) else { return nil }
-            return cache.books
+            return cache
         }
     }
 
@@ -646,10 +763,16 @@ final class AppStore: ObservableObject {
         exploreBrowse[Self.exploreKey(category, sort: sort)] ?? ExploreBrowseState()
     }
 
-    func loadExplore(_ category: ExploreCategory, refresh: Bool = false, sort: String = "") async {
+    func loadExplore(
+        _ category: ExploreCategory,
+        refresh: Bool = false,
+        sort: String = ""
+    ) async {
         let key = Self.exploreKey(category, sort: sort)
         if refresh {
-            exploreBrowse[key] = nil
+            // 不取消底层网络连接，但让它返回后不再覆盖这次刷新结果。
+            exploreRequestIDs[key] = nil
+            setExploreBrowseState(nil, forKey: key)
         }
         guard exploreBrowse[key] == nil else { return }
         await fetchExplore(category, page: 1, sort: sort)
@@ -658,24 +781,32 @@ final class AppStore: ObservableObject {
     func loadMoreExplore(_ category: ExploreCategory, sort: String = "") async {
         let state = exploreState(category, sort: sort)
         guard state.canLoadMore, state.loadedPages >= 1 else { return }
-        // 站点对连续翻页限速，页间隔约 1 秒（与上游一致）
-        try? await Task.sleep(nanoseconds: 1_100_000_000)
         await fetchExplore(category, page: state.loadedPages + 1, sort: sort)
     }
 
-    private func fetchExplore(_ category: ExploreCategory, page: Int, sort: String) async {
+    private func fetchExplore(
+        _ category: ExploreCategory,
+        page: Int,
+        sort: String
+    ) async {
         guard let service = services[source] else { return }
         let key = Self.exploreKey(category, sort: sort)
         var state = exploreBrowse[key] ?? ExploreBrowseState()
         guard !state.isLoading else { return }
+        let requestID = UUID()
+        exploreRequestIDs[key] = requestID
         // 第一页有磁盘缓存时先展示，避免二次进入白屏等待
-        if page == 1, state.books.isEmpty, let cached = Self.exploreDiskCache.loadExplorePage(key), !cached.isEmpty {
-            state.books = cached
-            exploreBrowse[key] = state
+        if page == 1, state.books.isEmpty,
+           let cached = Self.exploreDiskCache.loadExplorePage(key), !cached.books.isEmpty {
+            state.books = cached.books
+            state.bookIDs = Set(cached.books.map(\.id))
+            state.loadedPages = 1
+            state.totalPages = max(cached.totalPages, 1)
+            setExploreBrowseState(state, forKey: key)
         }
         state.isLoading = true
         state.error = nil
-        exploreBrowse[key] = state
+        setExploreBrowseState(state, forKey: key)
 
         // 自动重试（3 次，指数退避）：失败可能是未登录/网络抖动，重试前先自动登录（硬编码账号）自愈
         var lastError: Error?
@@ -693,13 +824,29 @@ final class AppStore: ObservableObject {
             }
             do {
                 let result = try await service.fetchExplorePage(category, page: page, sortSuffix: sort)
+                guard exploreRequestIDs[key] == requestID else { return }
                 state = exploreBrowse[key] ?? state
-                let existing = Set(state.books.map(\.id))
-                state.books += result.books.filter { !existing.contains($0.id) }
-                state.totalPages = max(result.totalPages, 1)
+                let reportedTotalPages = max(result.totalPages, 1)
+                // 站点返回登录页、拦截页或重复首页时，旧 KMP 层会解析成空列表/1 页。
+                // 这些都不能推进页码，否则列表会被永久判定为“到底”。
+                guard page <= reportedTotalPages else { throw BookSourceError.invalidExplorePage }
+                var existing = state.bookIDs
+                if existing.isEmpty, !state.books.isEmpty {
+                    existing = Set(state.books.map(\.id))
+                }
+                let added = result.books.filter { existing.insert($0.id).inserted }
+                if result.books.isEmpty || (page > 1 && added.isEmpty) {
+                    throw BookSourceError.invalidExplorePage
+                }
+                state.books += added
+                state.bookIDs = existing
+                state.totalPages = reportedTotalPages
                 state.loadedPages = page
                 state.isLoading = false
-                exploreBrowse[key] = state
+                setExploreBrowseState(state, forKey: key)
+                exploreRequestIDs[key] = nil
+                // 不在分页发布时批量预热封面。LazyVStack 会让接近视口的 cell 自行
+                // 发起延迟、可取消的加载，避免 20 本新书发布时产生 I/O/解码尖峰。
                 // 缓存第一页（各栏目首页数据，二次进入秒开）
                 if page == 1 {
                     Self.exploreDiskCache.storeExplorePage(key, books: state.books, totalPages: state.totalPages)
@@ -707,16 +854,23 @@ final class AppStore: ObservableObject {
                 return
             } catch {
                 lastError = error
+                // 这不是临时网络抖动；重复页/空页重试只会再次把同一错误结果当成功。
+                if let sourceError = error as? BookSourceError,
+                   case .invalidExplorePage = sourceError {
+                    break
+                }
                 if attempt < 2 {
                     try? await Task.sleep(nanoseconds: UInt64(attempt + 1) * 700_000_000)
                 }
             }
         }
+        guard exploreRequestIDs[key] == requestID else { return }
         state = exploreBrowse[key] ?? state
         state.isLoading = false
-        // 有缓存数据时不打断展示，静默失败
-        state.error = state.books.isEmpty ? (lastError?.localizedDescription ?? "加载失败") : nil
-        exploreBrowse[key] = state
+        // 已有首页缓存时也要展示后续页失败，否则用户会误以为已经到底且无法重试。
+        state.error = lastError?.localizedDescription ?? "加载失败"
+        setExploreBrowseState(state, forKey: key)
+        exploreRequestIDs[key] = nil
     }
 
     /// 探索「首页」板块：wenku8 首页推荐块（带磁盘缓存 + 失败自动重试）
@@ -1222,7 +1376,11 @@ final class AppStore: ObservableObject {
             }
             await disk.store(content, bookID: book.id, source: book.source)
             for (offset, urlString) in content.images.enumerated() {
-                let name = "\(content.index)-\(offset)-\(urlString.hashValue.magnitude)"
+                let name = Self.offlineImageName(
+                    chapterIndex: content.index,
+                    offset: offset,
+                    urlString: urlString
+                )
                 if let url = URL(string: urlString),
                    let data = try? await URLSession.shared.data(from: url).0, !data.isEmpty {
                     await disk.storeImage(data, bookID: book.id, source: book.source, name: name)

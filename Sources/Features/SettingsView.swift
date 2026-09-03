@@ -1,9 +1,22 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum AppVersionDisplay {
+    static func text(marketingVersion: String?) -> String {
+        let normalized = marketingVersion?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let version = normalized.flatMap { $0.isEmpty ? nil : $0 } ?? "—"
+        return "Version \(version)"
+    }
+
+    static var current: String {
+        text(marketingVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
-    @AppStorage("accentTheme") private var accentTheme = AccentTheme.purple.rawValue
+    @AppStorage(AccentTheme.storageKey) private var accentTheme = AccentTheme.defaultValue.rawValue
 
     @State private var showClearHistoryDialog = false
     @State private var showResetProgressDialog = false
@@ -35,11 +48,6 @@ struct SettingsView: View {
             .appendingPathComponent("LightNovelReader-崩溃报告.txt")
         try? content.write(to: url, atomically: true, encoding: .utf8)
         crashShareItem = BackupShareItem(url: url)
-    }
-
-    /// 从 Info.plist 读取版本号
-    private static var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
 
     var body: some View {
@@ -96,7 +104,7 @@ struct SettingsView: View {
                             Text(accent.rawValue)
                                 .foregroundStyle(.primary)
                             Spacer()
-                            if accentTheme == accent.rawValue {
+                            if AccentTheme.resolve(accentTheme) == accent {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(Color.accentPurple)
                             }
@@ -180,7 +188,7 @@ struct SettingsView: View {
             }
 
             Section {
-                LabeledContent("版本", value: Self.appVersion)
+                LabeledContent("版本", value: AppVersionDisplay.current)
                 LabeledContent("本地数据", value: "已自动保存")
                 if CrashReporter.shared.hasCrashes {
                     Button {

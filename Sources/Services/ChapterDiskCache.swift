@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// 章节正文、目录与书目的磁盘缓存（离线阅读）。
 /// 目录结构：<root>/<source>/<bookID>/{catalog.json, chapters/<index>.json}
@@ -59,11 +60,34 @@ actor ChapterDiskCache {
         try? data.write(to: dir.appendingPathComponent(safe(name)), options: .atomic)
     }
 
-    /// 已缓存的插图文件地址（离线阅读用）
-    func imageURL(bookID: String, source: String, name: String) -> URL? {
-        let url = bookDir(bookID: bookID, source: source)
-            .appendingPathComponent("images/\(safe(name))")
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    /// 已缓存的插图文件地址（离线阅读用）。
+    /// legacyPrefix 用于把旧版本基于 String.hashValue 的随机文件名按需迁移为稳定名称。
+    func imageURL(bookID: String, source: String, name: String, legacyPrefix: String? = nil) -> URL? {
+        let imageDir = bookDir(bookID: bookID, source: source)
+            .appendingPathComponent("images", isDirectory: true)
+        let url = imageDir.appendingPathComponent(safe(name))
+        if FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+
+        guard let legacyPrefix else { return nil }
+        let prefix = safe(legacyPrefix)
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: imageDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        guard let legacy = files.first(where: { $0.lastPathComponent.hasPrefix(prefix) }) else {
+            return nil
+        }
+
+        // 同一章同一插图只有一个旧缓存候选；迁移失败时仍返回旧地址，保证离线可读。
+        do {
+            try FileManager.default.moveItem(at: legacy, to: url)
+            return url
+        } catch {
+            return FileManager.default.fileExists(atPath: legacy.path) ? legacy : nil
+        }
     }
 
     // MARK: - 书目（整源离线兜底）
@@ -119,5 +143,13 @@ actor ChapterDiskCache {
         String(name.map { character in
             character.isLetter || character.isNumber || character == "-" || character == "_" ? character : "_"
         })
+    }
+}
+
+/// 跨启动、跨设备稳定的缓存键。不要使用 Swift 的 String.hashValue 持久化文件名，
+/// 因为它的随机种子会随进程改变。
+enum StableHash {
+    static func hex(_ value: String) -> String {
+        SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 }

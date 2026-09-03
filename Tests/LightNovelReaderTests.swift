@@ -1,5 +1,35 @@
 import XCTest
+import UIKit
+import SwiftUI
 @testable import LightNovelReader
+
+final class AppPresentationConsistencyTests: XCTestCase {
+    func testAccentThemeDefaultsToBlue() {
+        XCTAssertEqual(AccentTheme.defaultValue, .blue)
+        XCTAssertEqual(AccentTheme.resolve(nil), .blue)
+        XCTAssertEqual(AccentTheme.resolve("已失效的旧值"), .blue)
+    }
+
+    func testAccentThemeKeepsAValidSelection() {
+        XCTAssertEqual(AccentTheme.resolve(AccentTheme.purple.rawValue), .purple)
+    }
+
+    func testVersionUsesRequestedDisplayFormat() {
+        XCTAssertEqual(
+            AppVersionDisplay.text(marketingVersion: "1.1.5"),
+            "Version 1.1.5"
+        )
+        XCTAssertEqual(AppVersionDisplay.text(marketingVersion: "  "), "Version —")
+    }
+
+    func testSplashMetricsMatchLaunchScreenConstraints() {
+        XCTAssertEqual(SplashLayoutMetrics.iconSize, 88)
+        XCTAssertEqual(SplashLayoutMetrics.iconTitleSpacing, 12)
+        XCTAssertEqual(SplashLayoutMetrics.titleHeight, 24)
+        XCTAssertEqual(SplashLayoutMetrics.bottomInset, 60)
+        XCTAssertEqual(SplashLayoutMetrics.contentHeight, 184)
+    }
+}
 
 final class ReaderPaginationTests: XCTestCase {
     func testPaginateFillsPage() {
@@ -28,6 +58,574 @@ final class ReaderPaginationTests: XCTestCase {
         )
         XCTAssertEqual(pages.count, 1)
         XCTAssertEqual(pages[0], ["短文本"])
+    }
+
+    func testPaginateStopsWhenCancelled() {
+        let pages = ReaderPagination.paginate(
+            paragraphs: Array(repeating: "需要取消的长段落", count: 100),
+            width: 300,
+            height: 500,
+            fontSize: 17,
+            lineSpacing: 8,
+            shouldCancel: { true }
+        )
+        XCTAssertTrue(pages.isEmpty)
+    }
+}
+
+final class ReaderScrollChapterAdvancePolicyTests: XCTestCase {
+    func testUpwardPullStartedAtBottomAdvances() {
+        XCTAssertTrue(
+            ReaderScrollChapterAdvancePolicy.shouldAdvance(
+                startedAtBottom: true,
+                verticalTranslation: -48,
+                canAdvance: true
+            )
+        )
+    }
+
+    func testOrdinaryScrollThatOnlyEndsAtBottomDoesNotAdvance() {
+        XCTAssertFalse(
+            ReaderScrollChapterAdvancePolicy.shouldAdvance(
+                startedAtBottom: false,
+                verticalTranslation: -300,
+                canAdvance: true
+            )
+        )
+    }
+
+    func testShortOrDownwardPullDoesNotAdvance() {
+        XCTAssertFalse(
+            ReaderScrollChapterAdvancePolicy.shouldAdvance(
+                startedAtBottom: true,
+                verticalTranslation: -47,
+                canAdvance: true
+            )
+        )
+        XCTAssertFalse(
+            ReaderScrollChapterAdvancePolicy.shouldAdvance(
+                startedAtBottom: true,
+                verticalTranslation: 100,
+                canAdvance: true
+            )
+        )
+    }
+
+    func testLastChapterNeverAdvances() {
+        XCTAssertFalse(
+            ReaderScrollChapterAdvancePolicy.shouldAdvance(
+                startedAtBottom: true,
+                verticalTranslation: -200,
+                canAdvance: false
+            )
+        )
+    }
+
+    func testNativeScrollOffsetUsesBottomTolerance() {
+        XCTAssertTrue(
+            ReaderScrollChapterAdvancePolicy.isAtBottom(
+                contentOffsetY: 976,
+                maximumOffsetY: 1_000
+            )
+        )
+        XCTAssertFalse(
+            ReaderScrollChapterAdvancePolicy.isAtBottom(
+                contentOffsetY: 975,
+                maximumOffsetY: 1_000
+            )
+        )
+        XCTAssertTrue(
+            ReaderScrollChapterAdvancePolicy.isAtBottom(
+                contentOffsetY: 0,
+                maximumOffsetY: 0
+            ),
+            "不足一屏的短章节应当视为已经位于底部"
+        )
+    }
+}
+
+final class StableCacheKeyTests: XCTestCase {
+    func testStableHashMatchesKnownSHA256() {
+        XCTAssertEqual(
+            StableHash.hex("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        )
+    }
+
+    func testOfflineImageNameIsDeterministic() {
+        let url = "https://example.com/illustration.jpg"
+        let first = AppStore.offlineImageName(chapterIndex: 7, offset: 2, urlString: url)
+        let second = AppStore.offlineImageName(chapterIndex: 7, offset: 2, urlString: url)
+        XCTAssertEqual(first, second)
+        XCTAssertTrue(first.hasPrefix("7-2-"))
+    }
+
+    func testLegacyOfflineImageIsMigratedOnRead() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lnr-cache-test-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let cache = ChapterDiskCache(root: root)
+        let payload = Data([0x01, 0x02, 0x03])
+        await cache.storeImage(
+            payload,
+            bookID: "book",
+            source: "source",
+            name: "7-2-123456"
+        )
+
+        let stableName = AppStore.offlineImageName(
+            chapterIndex: 7,
+            offset: 2,
+            urlString: "https://example.com/illustration.jpg"
+        )
+        let migrated = await cache.imageURL(
+            bookID: "book",
+            source: "source",
+            name: stableName,
+            legacyPrefix: "7-2-"
+        )
+
+        let url = try XCTUnwrap(migrated)
+        XCTAssertEqual(url.lastPathComponent, stableName)
+        XCTAssertEqual(try Data(contentsOf: url), payload)
+    }
+}
+
+@MainActor
+final class ChapterLoadDeduplicationTests: XCTestCase {
+    func testConcurrentChapterLoadsShareOneRequest() async {
+        let service = CountingBookSourceService()
+        let store = AppStore(services: [service])
+        let book = Book(
+            id: "dedup-\(UUID().uuidString)",
+            title: "去重测试",
+            author: "测试",
+            tags: [],
+            source: service.name,
+            totalChapters: 0,
+            lastChapter: 0,
+            hasUpdate: false,
+            hits: 0,
+            intro: "",
+            coverIndex: 0
+        )
+
+        async let first: Void = store.loadChapters(for: book)
+        async let second: Void = store.loadChapters(for: book)
+        _ = await (first, second)
+
+        XCTAssertEqual(service.chapterFetchCount, 1)
+        XCTAssertEqual(store.chapterTitles(for: book)?.count, 1)
+    }
+}
+
+private final class CountingBookSourceService: BookSourceService {
+    let name = "测试书源"
+    private let lock = NSLock()
+    private var fetchCount = 0
+
+    var chapterFetchCount: Int {
+        lock.lock(); defer { lock.unlock() }
+        return fetchCount
+    }
+
+    func fetchBooks() async throws -> [Book] { [] }
+
+    func fetchChapters(for book: Book) async throws -> [ChapterItem] {
+        lock.lock()
+        fetchCount += 1
+        lock.unlock()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        return [ChapterItem(index: 0, title: "第一章")]
+    }
+
+    func fetchContent(for book: Book, chapter index: Int) async throws -> ChapterContent {
+        ChapterContent(index: index, title: "第一章", paragraphs: ["正文"])
+    }
+
+    func search(_ term: String) async throws -> [Book] { [] }
+}
+
+@MainActor
+final class ExplorePaginationTests: XCTestCase {
+    func testNextPageAppendsBooksAndAdvancesState() async {
+        let firstPage = [testBook("one"), testBook("two")]
+        let secondPage = [testBook("three"), testBook("four")]
+        let service = ExplorePagingService(responses: [
+            1: [.page(firstPage, totalPages: 3)],
+            2: [.page(secondPage, totalPages: 3)],
+        ])
+        let store = AppStore(services: [service])
+        let category = testCategory()
+
+        await store.loadExplore(category)
+        await store.loadMoreExplore(category)
+
+        let state = store.exploreState(category)
+        XCTAssertEqual(state.loadedPages, 2)
+        XCTAssertEqual(state.totalPages, 3)
+        XCTAssertEqual(state.books.map(\.id), ["one", "two", "three", "four"])
+        XCTAssertEqual(state.bookIDs, ["one", "two", "three", "four"])
+        XCTAssertNil(state.error)
+    }
+
+    func testRepeatedNextPageDoesNotMarkListAsFinished() async {
+        let firstPage = [testBook("one"), testBook("two")]
+        let service = ExplorePagingService(responses: [
+            1: [.page(firstPage, totalPages: 3)],
+            // 书源把第一页误当第二页返回时，不能推进页码或静默结束。
+            2: [.page(firstPage, totalPages: 3)],
+        ])
+        let store = AppStore(services: [service])
+        let category = testCategory()
+
+        await store.loadExplore(category)
+        await store.loadMoreExplore(category)
+
+        let state = store.exploreState(category)
+        XCTAssertEqual(state.loadedPages, 1)
+        XCTAssertEqual(state.totalPages, 3)
+        XCTAssertEqual(state.books.map(\.id), ["one", "two"])
+        XCTAssertEqual(state.bookIDs, ["one", "two"])
+        XCTAssertNotNil(state.error)
+        XCTAssertTrue(state.canLoadMore)
+    }
+
+    func testFailedNextPageRemainsVisibleAndRetryable() async {
+        let firstPage = [testBook("one"), testBook("two")]
+        let secondPage = [testBook("three")]
+        let service = ExplorePagingService(responses: [
+            1: [.page(firstPage, totalPages: 2)],
+            2: [.failure, .failure, .failure, .page(secondPage, totalPages: 2)],
+        ])
+        let store = AppStore(services: [service])
+        let category = testCategory()
+
+        await store.loadExplore(category)
+        await store.loadMoreExplore(category)
+
+        var state = store.exploreState(category)
+        XCTAssertEqual(state.loadedPages, 1)
+        XCTAssertNotNil(state.error, "已有首页数据时，后续页失败也必须显示重试入口")
+        XCTAssertTrue(state.canLoadMore)
+
+        await store.loadMoreExplore(category)
+        state = store.exploreState(category)
+        XCTAssertEqual(state.loadedPages, 2)
+        XCTAssertEqual(state.books.map(\.id), ["one", "two", "three"])
+        XCTAssertEqual(state.bookIDs, ["one", "two", "three"])
+        XCTAssertNil(state.error)
+        XCTAssertEqual(service.requestedPages, [1, 2, 2, 2, 2])
+    }
+
+    private func testCategory() -> ExploreCategory {
+        ExploreCategory(
+            id: "pagination-test-\(UUID().uuidString)",
+            title: "分页测试",
+            path: "/test",
+            extraParams: ""
+        )
+    }
+
+    private func testBook(_ id: String) -> Book {
+        Book(
+            id: id,
+            title: id,
+            author: "测试",
+            tags: [],
+            source: "分页测试书源",
+            totalChapters: 0,
+            lastChapter: 0,
+            hasUpdate: false,
+            hits: 0,
+            intro: "",
+            coverIndex: 0
+        )
+    }
+}
+
+@MainActor
+final class ExplorePerformancePolicyTests: XCTestCase {
+    func testPrefetchUsesOneStableTriggerBeforeTheBottom() {
+        XCTAssertFalse(ExplorePaginationPolicy.shouldPrefetch(visibleIndex: 7, itemCount: 20))
+        XCTAssertTrue(ExplorePaginationPolicy.shouldPrefetch(visibleIndex: 8, itemCount: 20))
+        XCTAssertFalse(ExplorePaginationPolicy.shouldPrefetch(visibleIndex: 19, itemCount: 20))
+        XCTAssertEqual(ExplorePaginationPolicy.prefetchIndex(itemCount: 20), 8)
+    }
+
+    func testPrefetchPolicyRejectsInvalidIndices() {
+        XCTAssertFalse(ExplorePaginationPolicy.shouldPrefetch(visibleIndex: -1, itemCount: 20))
+        XCTAssertFalse(ExplorePaginationPolicy.shouldPrefetch(visibleIndex: 20, itemCount: 20))
+        XCTAssertFalse(ExplorePaginationPolicy.shouldPrefetch(visibleIndex: 0, itemCount: 0))
+        XCTAssertNil(ExplorePaginationPolicy.prefetchIndex(itemCount: 0))
+    }
+
+    func testExploreGridUsesStableFixedColumns() {
+        let compact = ExploreGridMetrics.resolve(containerWidth: 375, regularWidth: false)
+        XCTAssertEqual(compact.columnCount, 3)
+        XCTAssertEqual(compact.cellWidth, 105, accuracy: 0.001)
+        XCTAssertEqual(compact.coverHeight, 140, accuracy: 0.001)
+        XCTAssertEqual(compact.cellHeight, 204, accuracy: 0.001)
+        XCTAssertEqual(compact.columns.count, compact.columnCount)
+
+        XCTAssertGreaterThanOrEqual(ExploreGridMetrics.titleHeight, 36)
+        XCTAssertGreaterThanOrEqual(ExploreGridMetrics.authorHeight, 16)
+
+        let regular = ExploreGridMetrics.resolve(containerWidth: 1_024, regularWidth: true)
+        XCTAssertEqual(regular.columnCount, 5)
+        XCTAssertEqual(regular.cellWidth, 187.2, accuracy: 0.001)
+        XCTAssertEqual(ExploreBookCell.coverCornerRadius, 16)
+    }
+
+    func testExploreRowsHaveStableIdentityAndFixedOccupancy() {
+        let books = (0..<8).map { index in
+            Book(
+                id: "row-\(index)", title: "测试", author: "作者", tags: [],
+                source: "测试", totalChapters: 0, lastChapter: 0,
+                hasUpdate: false, hits: 0, intro: "", coverIndex: 0
+            )
+        }
+        let rows = ExploreGridRow.make(from: books, columnCount: 3)
+
+        XCTAssertEqual(rows.count, 3)
+        XCTAssertEqual(rows.map(\.books.count), [3, 3, 2])
+        XCTAssertEqual(rows.map(\.id), ["row-0", "row-3", "row-6"])
+    }
+
+    func testCoverLoadingPolicyDefersAndPrioritizesWork() {
+        XCTAssertEqual(CoverLoadingPolicy.defaultPrewarmLimit, 4)
+        XCTAssertGreaterThan(CoverLoadingPolicy.exploreCellStartDelayNanoseconds, 0)
+        XCTAssertEqual(CoverLoadingPolicy.presentationIntervalNanoseconds, 8_000_000)
+        XCTAssertTrue(CoverLoadingPolicy.isForeground(.userInitiated))
+        XCTAssertFalse(CoverLoadingPolicy.isForeground(.utility))
+        XCTAssertFalse(CoverLoadingPolicy.isForeground(.background))
+    }
+
+    func testCoverCacheCreatesAProvidedRootDirectory() {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lnr-cover-cache-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        _ = CoverImageCache(root: root, maxConcurrentLoads: 1)
+
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory))
+        XCTAssertTrue(isDirectory.boolValue)
+    }
+
+    func testCoverURLCanonicalizationUsesHTTPS() {
+        XCTAssertEqual(
+            CoverImageCache.canonicalURLString("http://img.wenku8.com/image/1/2/2s.jpg"),
+            "https://img.wenku8.com/image/1/2/2s.jpg"
+        )
+        XCTAssertEqual(
+            CoverImageCache.canonicalURLString("https://example.com/cover.jpg"),
+            "https://example.com/cover.jpg"
+        )
+    }
+
+    func testDownsampleReturnsDecodedBoundedImage() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let data = UIGraphicsImageRenderer(size: CGSize(width: 1_000, height: 1_500), format: format)
+            .pngData { context in
+                UIColor.systemPurple.setFill()
+                context.fill(CGRect(x: 0, y: 0, width: 1_000, height: 1_500))
+            }
+
+        let image = try XCTUnwrap(CoverImageCache.downsample(data, maxPixel: 120))
+        let longestEdge = max(image.cgImage?.width ?? 0, image.cgImage?.height ?? 0)
+        XCTAssertLessThanOrEqual(longestEdge, 120)
+    }
+}
+
+final class ReaderAppearancePolicyTests: XCTestCase {
+    func testReaderFollowSystemUsesActualSystemAppearance() {
+        let followSystem = ReaderBackgroundPolicy.followSystemIndex
+        XCTAssertEqual(
+            ReaderBackgroundPolicy.resolvedIndex(selection: followSystem, systemIsDark: false),
+            ReaderBackgroundPolicy.systemLightIndex
+        )
+        XCTAssertEqual(
+            ReaderBackgroundPolicy.resolvedIndex(selection: followSystem, systemIsDark: true),
+            ReaderBackgroundPolicy.systemDarkIndex
+        )
+    }
+
+    func testExplicitReaderBackgroundIsIndependentFromSystemAndAppAppearance() {
+        XCTAssertEqual(ReaderBackgroundPolicy.resolvedIndex(selection: 1, systemIsDark: false), 1)
+        XCTAssertEqual(ReaderBackgroundPolicy.resolvedIndex(selection: 1, systemIsDark: true), 1)
+        XCTAssertNil(ThemePreference.system.colorScheme)
+    }
+}
+
+final class ReaderPreferencesDefaultsTests: XCTestCase {
+    func testFreshDefaultsMatchRequestedReadingLayout() {
+        assertRequestedDefaults(ReaderPreferences())
+    }
+
+    func testMissingPersistedFieldsUseRequestedDefaults() throws {
+        let preferences = try JSONDecoder().decode(
+            ReaderPreferences.self,
+            from: Data("{}".utf8)
+        )
+        assertRequestedDefaults(preferences)
+    }
+
+    private func assertRequestedDefaults(
+        _ preferences: ReaderPreferences,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(preferences.fontFamily, .kaiti, file: file, line: line)
+        XCTAssertFalse(preferences.bold, file: file, line: line)
+        XCTAssertEqual(preferences.fontSize, 22, file: file, line: line)
+        XCTAssertEqual(preferences.lineSpacing, 8, file: file, line: line)
+        XCTAssertEqual(preferences.marginLeft, 35, file: file, line: line)
+        XCTAssertEqual(preferences.marginRight, 35, file: file, line: line)
+        XCTAssertEqual(preferences.marginTop, 72, file: file, line: line)
+        XCTAssertEqual(preferences.marginBottom, 24, file: file, line: line)
+        XCTAssertEqual(preferences.mode, .flip, file: file, line: line)
+    }
+}
+
+@MainActor
+final class PageCurlSingleSidedTests: XCTestCase {
+    private func makeReader(pageCount: Int = 3) -> PageCurlReaderView {
+        let paperColor = UIColor(red: 0.11, green: 0.12, blue: 0.15, alpha: 1)
+        return PageCurlReaderView(
+            pageCount: pageCount,
+            initialPage: 0,
+            background: paperColor,
+            renderToken: "single-sided-test",
+            pageBuilder: { _ in AnyView(EmptyView()) },
+            onEdge: { _ in },
+            onPageChanged: { _ in },
+            onToggleBars: {}
+        )
+    }
+
+    func testConfigurationUsesOneSingleSidedController() {
+        XCTAssertFalse(PageCurlConfiguration.isDoubleSided)
+        XCTAssertEqual(PageCurlConfiguration.targetControllerCount, 1)
+        let controller = PageCurlReaderView.makePageViewController()
+        XCTAssertFalse(controller.isDoubleSided)
+        XCTAssertEqual(controller.spineLocation, .min)
+    }
+
+    func testSingleSidedSequenceMovesDirectlyBetweenContentPages() {
+        XCTAssertNil(PageCurlPageSequence.previousIndex(from: 0, pageCount: 3))
+        XCTAssertEqual(PageCurlPageSequence.previousIndex(from: 1, pageCount: 3), 0)
+        XCTAssertEqual(PageCurlPageSequence.previousIndex(from: 2, pageCount: 3), 1)
+        XCTAssertEqual(PageCurlPageSequence.nextIndex(from: 0, pageCount: 3), 1)
+        XCTAssertEqual(PageCurlPageSequence.nextIndex(from: 1, pageCount: 3), 2)
+        XCTAssertNil(PageCurlPageSequence.nextIndex(from: 2, pageCount: 3))
+        XCTAssertNil(PageCurlPageSequence.nextIndex(from: -1, pageCount: 3))
+        XCTAssertNil(PageCurlPageSequence.previousIndex(from: 0, pageCount: 0))
+    }
+
+    func testCoordinatorBuildsOnlyOneOpaqueContentPage() throws {
+        let reader = makeReader()
+        let coordinator = reader.makeCoordinator()
+        let page = try XCTUnwrap(coordinator.pageVC(for: 1))
+
+        XCTAssertEqual(page.pageIndex, 1)
+        XCTAssertNotNil(page.content)
+        XCTAssertTrue(page.view.isOpaque)
+        XCTAssertEqual(page.view.backgroundColor, reader.background)
+        XCTAssertEqual(coordinator.visibleControllers(at: 1).count, 1)
+        XCTAssertNil(coordinator.pageVC(for: -1))
+        XCTAssertNil(coordinator.pageVC(for: 3))
+    }
+
+    func testDataSourceReturnsAdjacentContentPagesWithoutBackSurfaces() throws {
+        let reader = makeReader()
+        let coordinator = reader.makeCoordinator()
+        let controller = UIPageViewController(
+            transitionStyle: .pageCurl,
+            navigationOrientation: .horizontal,
+            options: [.spineLocation: UIPageViewController.SpineLocation.min.rawValue]
+        )
+        controller.isDoubleSided = PageCurlConfiguration.isDoubleSided
+        controller.dataSource = coordinator
+        coordinator.pvc = controller
+        let current = try XCTUnwrap(coordinator.pageVC(for: 1))
+        controller.setViewControllers([current], direction: .forward, animated: false)
+
+        let previous = try XCTUnwrap(
+            coordinator.pageViewController(controller, viewControllerBefore: current)
+                as? PageHostController
+        )
+        let next = try XCTUnwrap(
+            coordinator.pageViewController(controller, viewControllerAfter: current)
+                as? PageHostController
+        )
+
+        XCTAssertEqual(previous.pageIndex, 0)
+        XCTAssertEqual(next.pageIndex, 2)
+        XCTAssertEqual(coordinator.currentPage(in: controller), 1)
+    }
+
+    func testOneControllerIsAcceptedForBothProgrammaticDirections() throws {
+        let reader = makeReader()
+        let coordinator = reader.makeCoordinator()
+        let controller = UIPageViewController(
+            transitionStyle: .pageCurl,
+            navigationOrientation: .horizontal,
+            options: [.spineLocation: UIPageViewController.SpineLocation.min.rawValue]
+        )
+        controller.isDoubleSided = PageCurlConfiguration.isDoubleSided
+        controller.dataSource = coordinator
+        coordinator.pvc = controller
+
+        let middle = try XCTUnwrap(coordinator.pageVC(for: 1))
+        let next = try XCTUnwrap(coordinator.pageVC(for: 2))
+        let previous = try XCTUnwrap(coordinator.pageVC(for: 0))
+        controller.setViewControllers([middle], direction: .forward, animated: false)
+        controller.setViewControllers([next], direction: .forward, animated: false)
+        controller.setViewControllers([previous], direction: .reverse, animated: false)
+
+        XCTAssertEqual(controller.viewControllers?.count, 1)
+        XCTAssertEqual(coordinator.currentPage(in: controller), 0)
+    }
+}
+
+private final class ExplorePagingService: BookSourceService {
+    enum Outcome {
+        case page([Book], totalPages: Int)
+        case failure
+    }
+
+    let name = "分页测试书源"
+    private var responses: [Int: [Outcome]]
+    private(set) var requestedPages: [Int] = []
+
+    init(responses: [Int: [Outcome]]) {
+        self.responses = responses
+    }
+
+    func fetchBooks() async throws -> [Book] { [] }
+
+    func fetchChapters(for book: Book) async throws -> [ChapterItem] { [] }
+
+    func fetchContent(for book: Book, chapter index: Int) async throws -> ChapterContent {
+        ChapterContent(index: index, title: "", paragraphs: [])
+    }
+
+    func search(_ term: String) async throws -> [Book] { [] }
+
+    func fetchExplorePage(_ category: ExploreCategory, page: Int, sortSuffix: String) async throws -> (books: [Book], totalPages: Int) {
+        requestedPages.append(page)
+        var outcomes = responses[page] ?? [.failure]
+        let outcome = outcomes.removeFirst()
+        responses[page] = outcomes
+        switch outcome {
+        case .page(let books, let totalPages):
+            return (books, totalPages)
+        case .failure:
+            throw BookSourceError.unreachable
+        }
     }
 }
 
@@ -76,6 +674,25 @@ final class ChapterContentBackwardCompatTests: XCTestCase {
         XCTAssertEqual(content.title, "旧章节")
         XCTAssertEqual(content.paragraphs.count, 2)
         XCTAssertTrue(content.images.isEmpty)
+    }
+}
+
+final class Wenku8ExplorePageParserTests: XCTestCase {
+    func testExplorePageCountAcceptsWhitespaceAndPaginationLinks() {
+        let html = """
+        <div id="pagelink"><em id="pagestats">2 / 105</em>
+        <a href="articlelist.php?page=104">104</a>
+        <a href="articlelist.php?page=105">105</a></div>
+        """
+        XCTAssertEqual(Wenku8Service.exploreTotalPages(in: html), 105)
+    }
+
+    func testExplorePageCountFallsBackToLargestLinkedPage() {
+        let html = """
+        <div id="pagelink"><a href="toplist.php?sort=anime&amp;page=3">3</a>
+        <a href="toplist.php?sort=anime&amp;page=12">12</a></div>
+        """
+        XCTAssertEqual(Wenku8Service.exploreTotalPages(in: html), 12)
     }
 }
 

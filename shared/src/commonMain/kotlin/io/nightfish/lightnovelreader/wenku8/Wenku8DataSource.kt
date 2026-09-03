@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
+import platform.Foundation.NSLog
 
 /**
  * wenku8 抓取器：从上游 `Wenku8WebsiteDataSource` 移植，把 JVM 依赖换成 KMP 等价物：
@@ -35,25 +36,34 @@ import kotlinx.serialization.json.Json
  */
 class Wenku8DataSource(
     private val client: Wenku8Client,
+    // 除「缓存全书（正文章节页）」用 .cc 外，其余（详情/目录/探索/搜索）都用 .net。
+    // .cc 只有正文页（/novel/*.htm）放行且更快；articlelist/toplist/index/search 都被 WAF 拦截。
     private val hosts: List<String> = listOf(
-        "https://www.wenku8.cc",
         "https://www.wenku8.net",
+        "https://www.wenku8.cc",
         "https://www.wenku8.com"
     )
 ) {
     private val titleRegex = Regex("(.*) ?[(（](.*)[)）] ?$")
     private val json = Json { ignoreUnknownKeys = true }
 
+    /// 默认主域：.net（探索/搜索用，.cc 对这两个接口被 WAF 拦截）
     private fun host(): String = hosts.first()
 
+    /// 缓存全书/详情/目录用 .cc（实测 .cc 的 novel/*.htm、novel/index、book/ 都放行且更快，
+    /// 尤其 book/ 详情 .cc 比 .net 快数倍）
+    private fun ccHost(): String = "https://www.wenku8.cc"
+
     private fun url(string: String): String = "${host()}/$string"
+
+    private fun ccUrl(string: String): String = "${ccHost()}/$string"
 
     private fun aidOf(bookId: String): Int = bookId.toIntOrNull() ?: 0
 
     // MARK: - 详情
 
     suspend fun getBookInformation(id: String): Result<BookInformation> {
-        val html: String = client.getHtml(url("book/$id.htm")).getOrElse {
+        val html: String = client.getHtml(ccUrl("book/$id.htm")).getOrElse {
             return Result.failure(WebRequestError("网络请求失败", it.message ?: "网络错误"))
         }
         val soup = Ksoup.parse(html)
@@ -123,7 +133,7 @@ class Wenku8DataSource(
     // MARK: - 目录（卷 + 章）
 
     suspend fun getBookVolumes(id: String): Result<BookVolumes> {
-        val html: String = client.getHtml(url("novel/${aidOf(id) / 1000}/$id/index.htm")).getOrElse {
+        val html: String = client.getHtml(ccUrl("novel/${aidOf(id) / 1000}/$id/index.htm")).getOrElse {
             return Result.failure(WebRequestError("网络请求失败", it.message ?: "网络错误"))
         }
         val soup = Ksoup.parse(html)
@@ -155,7 +165,8 @@ class Wenku8DataSource(
     // MARK: - 正文（组件化 JSON）
 
     suspend fun getChapterContent(chapterId: String, bookId: String): Result<ChapterContent> {
-        val html: String = client.getHtml(url("novel/${aidOf(bookId) / 1000}/$bookId/$chapterId.htm")).getOrElse {
+        // 缓存全书：正文章节页走 .cc（实测更快且放行）
+        val html: String = client.getHtml(ccUrl("novel/${aidOf(bookId) / 1000}/$bookId/$chapterId.htm")).getOrElse {
             return Result.failure(WebRequestError("网络请求失败", it.message ?: "网络错误"))
         }
         val soup = Ksoup.parse(html)
@@ -205,8 +216,9 @@ class Wenku8DataSource(
     }
 
     private fun resolveImageUrl(src: String): String {
+        // 正文插图相对路径用 .cc（正文页走 .cc，图片同域更快）
         if (src.startsWith("http")) return src
-        return host() + "/" + src.trimStart('/')
+        return ccHost() + "/" + src.trimStart('/')
     }
 
     /** 解析页脚上一章/下一章链接（#foottext 下第 n 个 a 标签） */
@@ -230,9 +242,11 @@ class Wenku8DataSource(
         val encodedKeyword = Gbk.percentEncode(keyword)
         var targetPage = 1
         var presentPage = 1
+        // 搜索走 .net（.cc 的 search.php 被 WAF 拦截）
+        val searchHost = "https://www.wenku8.net"
         while (presentPage <= targetPage) {
             val html = client.getHtml(
-                url("modules/article/search.php?searchtype=$searchType&searchkey=$encodedKeyword&page=$presentPage")
+                "$searchHost/modules/article/search.php?searchtype=$searchType&searchkey=$encodedKeyword&page=$presentPage"
             ).getOrNull()
             if (html == null) {
                 emit(SearchResult.Error("Failed to request the web page"))

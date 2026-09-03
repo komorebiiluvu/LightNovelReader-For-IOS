@@ -6,6 +6,7 @@ enum BookSourceError: LocalizedError {
     case contentUnavailable(title: String)
     case loginRequired
     case searchThrottled
+    case invalidExplorePage
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,8 @@ enum BookSourceError: LocalizedError {
             return "搜索需要登录：请在「设置」中登录 wenku8 账号"
         case .searchThrottled:
             return "搜索太频繁，站点要求两次搜索间隔不少于 5 秒"
+        case .invalidExplorePage:
+            return "书源返回了无效的分页数据，请重试"
         }
     }
 }

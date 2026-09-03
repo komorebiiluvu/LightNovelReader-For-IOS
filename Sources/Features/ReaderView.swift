@@ -7,6 +7,164 @@ enum ReaderMode: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
+/// 滚动阅读的跨章手势判定。必须从本章底部开始一次新的上滑，避免普通的
+/// 惯性滚动刚好抵达章末时直接跳走。
+enum ReaderScrollChapterAdvancePolicy {
+    static let upwardPullThreshold: CGFloat = 48
+    /// 原生滚动值可能受 safe area、缩放和小数像素影响；在距底部 24pt 内开始
+    /// 新手势均视为用户已经读到章末。
+    static let bottomTolerance: CGFloat = 24
+
+    static func isAtBottom(contentOffsetY: CGFloat, maximumOffsetY: CGFloat) -> Bool {
+        contentOffsetY >= maximumOffsetY - bottomTolerance
+    }
+
+    static func shouldAdvance(
+        startedAtBottom: Bool,
+        verticalTranslation: CGFloat,
+        canAdvance: Bool
+    ) -> Bool {
+        startedAtBottom
+            && canAdvance
+            && verticalTranslation <= -upwardPullThreshold
+    }
+}
+
+/// 直接观察 SwiftUI ScrollView 背后的 UIScrollView 原生拖动手势。
+///
+/// iOS 16 下额外叠加的 SwiftUI DragGesture 可能被滚动容器取消，尤其是短章节
+/// 没有可滚动距离时。这里不给手势添加竞争识别器，只作为现有 panGestureRecognizer
+/// 的 target 读取真实 contentOffset 和 translation，因此不会改变正常滚动物理。
+private struct ReaderScrollPullMonitor: UIViewRepresentable {
+    let canAdvance: Bool
+    let onAdvance: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(canAdvance: canAdvance, onAdvance: onAdvance)
+    }
+
+    func makeUIView(context: Context) -> ObserverView {
+        let view = ObserverView()
+        view.isUserInteractionEnabled = false
+        view.coordinator = context.coordinator
+        return view
+    }
+
+    func updateUIView(_ uiView: ObserverView, context: Context) {
+        context.coordinator.canAdvance = canAdvance
+        context.coordinator.onAdvance = onAdvance
+        uiView.coordinator = context.coordinator
+        uiView.attachIfPossible()
+    }
+
+    static func dismantleUIView(_ uiView: ObserverView, coordinator: Coordinator) {
+        coordinator.detach()
+    }
+
+    final class ObserverView: UIView {
+        weak var coordinator: Coordinator?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            attachIfPossible()
+            // SwiftUI 有时会在 didMoveToWindow 后一拍才把承载视图放进 UIScrollView。
+            DispatchQueue.main.async { [weak self] in
+                self?.attachIfPossible()
+            }
+        }
+
+        func attachIfPossible() {
+            coordinator?.attach(from: self)
+        }
+    }
+
+    final class Coordinator: NSObject {
+        var canAdvance: Bool
+        var onAdvance: () -> Void
+
+        private weak var scrollView: UIScrollView?
+        private weak var panGesture: UIPanGestureRecognizer?
+        private var previousAlwaysBounceVertical: Bool?
+        private var startedAtBottom = false
+        private var didTrigger = false
+
+        init(canAdvance: Bool, onAdvance: @escaping () -> Void) {
+            self.canAdvance = canAdvance
+            self.onAdvance = onAdvance
+        }
+
+        func attach(from observer: UIView) {
+            var ancestor = observer.superview
+            while let view = ancestor, !(view is UIScrollView) {
+                ancestor = view.superview
+            }
+            guard let found = ancestor as? UIScrollView else { return }
+            guard scrollView !== found else { return }
+
+            detach()
+            scrollView = found
+            let pan = found.panGestureRecognizer
+            pan.addTarget(self, action: #selector(handlePan(_:)))
+            panGesture = pan
+            // 不足一屏的短章节也必须允许在章末继续上拉。
+            previousAlwaysBounceVertical = found.alwaysBounceVertical
+            found.alwaysBounceVertical = true
+        }
+
+        func detach() {
+            panGesture?.removeTarget(self, action: #selector(handlePan(_:)))
+            if let previousAlwaysBounceVertical {
+                scrollView?.alwaysBounceVertical = previousAlwaysBounceVertical
+            }
+            previousAlwaysBounceVertical = nil
+            panGesture = nil
+            scrollView = nil
+            startedAtBottom = false
+            didTrigger = false
+        }
+
+        @objc private func handlePan(_ pan: UIPanGestureRecognizer) {
+            guard let scrollView else { return }
+            switch pan.state {
+            case .began:
+                let minimumOffsetY = -scrollView.adjustedContentInset.top
+                let maximumOffsetY = max(
+                    minimumOffsetY,
+                    scrollView.contentSize.height
+                        - scrollView.bounds.height
+                        + scrollView.adjustedContentInset.bottom
+                )
+                startedAtBottom = ReaderScrollChapterAdvancePolicy.isAtBottom(
+                    contentOffsetY: scrollView.contentOffset.y,
+                    maximumOffsetY: maximumOffsetY
+                )
+                didTrigger = false
+
+            case .changed:
+                guard !didTrigger,
+                      ReaderScrollChapterAdvancePolicy.shouldAdvance(
+                          startedAtBottom: startedAtBottom,
+                          verticalTranslation: pan.translation(in: scrollView).y,
+                          canAdvance: canAdvance
+                      ) else { return }
+                didTrigger = true
+                // 下一拍再切章，避免在 UIScrollView 正分发 pan 回调时销毁承载视图。
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.canAdvance else { return }
+                    self.onAdvance()
+                }
+
+            case .ended, .cancelled, .failed:
+                startedAtBottom = false
+                didTrigger = false
+
+            default:
+                break
+            }
+        }
+    }
+}
+
 /// 滚动模式章内位置上报
 private struct ReaderScrollFractionKey: PreferenceKey {
     static var defaultValue: Double = 0
@@ -26,66 +184,100 @@ private struct ReaderScrollSurface: View {
     let captionColor: Color
     let prefs: ReaderPreferences
     let restoreFraction: Double
+    let canAdvanceChapter: Bool
     let onToggleBars: () -> Void
     let onFractionChange: (Double) -> Void
+    let onNextChapter: () -> Void
     /// 子视图销毁（切章/退出阅读）时上报最终位置；章号由子视图自带，避免父视图状态时序错位
     let onPersist: (Int, Double) -> Void
 
     @State private var reportedFraction: Double = 0
+    @State private var isRequestingNextChapter = false
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(chapterLabelText)
-                        .font(.caption)
-                        .foregroundStyle(captionColor)
-                    Text("第 \(chapterNumber + 1) 章")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        ForEach(Array(content.paragraphs.enumerated()), id: \.offset) { offset, paragraph in
-                            Text(paragraph)
-                                .font(bodyFont)
-                                .lineSpacing(lineSpacing)
-                                .id("para-\(offset)")
+        GeometryReader { viewport in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(chapterLabelText)
+                            .font(.caption)
+                            .foregroundStyle(captionColor)
+                        Text("第 \(chapterNumber + 1) 章")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        LazyVStack(alignment: .leading, spacing: 16) {
+                            ForEach(Array(content.paragraphs.enumerated()), id: \.offset) { offset, paragraph in
+                                Text(paragraph)
+                                    .font(bodyFont)
+                                    .lineSpacing(lineSpacing)
+                                    .id("para-\(offset)")
+                            }
+                            ForEach(content.images, id: \.self) { urlString in
+                                scrollImage(urlString)
+                            }
                         }
-                        ForEach(content.images, id: \.self) { urlString in
-                            scrollImage(urlString)
-                        }
+                        Text(canAdvanceChapter ? "继续上滑进入下一章" : "已到最后一章")
+                            .font(.caption)
+                            .foregroundStyle(captionColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 12)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, prefs.marginLeft)
+                    .padding(.trailing, prefs.marginRight)
+                    .padding(.top, prefs.marginTop)
+                    // 上下使用同一用户边距；额外 16pt 会在隐藏 UI 后形成明显的底部空带。
+                    .padding(.bottom, prefs.marginBottom)
+                    .background(
+                        ZStack {
+                            GeometryReader { geo in
+                                Color.clear.preference(
+                                    key: ReaderScrollFractionKey.self,
+                                    value: min(max(
+                                        Double(-geo.frame(in: .named("readerScroll")).minY)
+                                            / max(Double(geo.size.height - viewport.size.height), 1),
+                                        0), 1)
+                                )
+                            }
+                            ReaderScrollPullMonitor(
+                                canAdvance: canAdvanceChapter && !isRequestingNextChapter,
+                                onAdvance: requestNextChapter
+                            )
+                            .frame(width: 0, height: 0)
+                        }
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, prefs.marginLeft)
-                .padding(.trailing, prefs.marginRight)
-                .padding(.top, prefs.marginTop)
-                .padding(.bottom, prefs.marginBottom + 16)
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: ReaderScrollFractionKey.self,
-                            value: min(max(
-                                Double(-geo.frame(in: .named("readerScroll")).minY)
-                                    / max(Double(geo.size.height - UIScreen.main.bounds.height), 1),
-                                0), 1)
-                        )
-                    }
+                .coordinateSpace(name: "readerScroll")
+                // 沉浸阅读：仅点击屏幕中间 1/3 唤起/收起顶栏底栏（与翻页模式三分区一致）
+                .gesture(
+                    SpatialTapGesture(coordinateSpace: .local)
+                        .onEnded { value in
+                            let w = value.location.x
+                            if w >= UIScreen.main.bounds.width / 3,
+                               w <= UIScreen.main.bounds.width * 2 / 3 {
+                                onToggleBars()
+                            }
+                        }
                 )
-            }
-            .coordinateSpace(name: "readerScroll")
-            .onTapGesture { onToggleBars() }
-            .onPreferenceChange(ReaderScrollFractionKey.self) { value in
-                guard abs(value - reportedFraction) > 0.02 || value >= 1 else { return }
-                reportedFraction = value
-                onFractionChange(value)
-            }
-            .task(id: chapterNumber) {
-                restorePosition(proxy)
+                .onPreferenceChange(ReaderScrollFractionKey.self) { value in
+                    guard abs(value - reportedFraction) > 0.02 || value >= 1 else { return }
+                    reportedFraction = value
+                    onFractionChange(value)
+                }
+                .task(id: chapterNumber) {
+                    restorePosition(proxy)
+                }
             }
         }
         .onDisappear {
             onPersist(chapterNumber, reportedFraction)
         }
+    }
+
+    private func requestNextChapter() {
+        guard !isRequestingNextChapter, canAdvanceChapter else { return }
+        isRequestingNextChapter = true
+        onNextChapter()
     }
 
     private func restorePosition(_ proxy: ScrollViewProxy) {
@@ -144,14 +336,77 @@ let readerBackgrounds: [ReaderBackground] = [
     ReaderBackground(name: "护眼", background: Color(hex: 0xDCEBD8), foreground: Color(hex: 0x1F2B1E), isDark: false)
 ]
 
+/// 阅读背景只由阅读器自己的选择和 iOS 系统外观决定，不读取 App 的外观偏好。
+enum ReaderBackgroundPolicy {
+    static let followSystemIndex = readerBackgrounds.count
+    static let systemLightIndex = 0
+    static let systemDarkIndex = 3
+
+    static func resolvedIndex(selection: Int, systemIsDark: Bool) -> Int {
+        if selection == followSystemIndex {
+            return systemIsDark ? systemDarkIndex : systemLightIndex
+        }
+        return min(max(selection, 0), readerBackgrounds.count - 1)
+    }
+}
+
+/// 从 UIScreen 读取真实的 iOS 外观；它不受当前 App 窗口 preferredColorScheme 覆盖影响。
+enum SystemAppearance {
+    static var isDark: Bool {
+        UIScreen.main.traitCollection.userInterfaceStyle == .dark
+    }
+}
+
+/// 系统外观变化探针。回调读取 window.screen，而不是被 App 外观覆盖后的 view.traitCollection。
+private struct SystemAppearanceProbe: UIViewRepresentable {
+    let onChange: (Bool) -> Void
+
+    func makeUIView(context: Context) -> ProbeView {
+        let view = ProbeView()
+        view.onChange = onChange
+        view.publishCurrentAppearance()
+        return view
+    }
+
+    func updateUIView(_ uiView: ProbeView, context: Context) {
+        uiView.onChange = onChange
+        uiView.publishCurrentAppearance()
+    }
+
+    final class ProbeView: UIView {
+        var onChange: ((Bool) -> Void)?
+        private var lastValue: Bool?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            publishCurrentAppearance()
+        }
+
+        override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+            super.traitCollectionDidChange(previousTraitCollection)
+            publishCurrentAppearance()
+        }
+
+        func publishCurrentAppearance() {
+            let style = window?.screen.traitCollection.userInterfaceStyle
+                ?? UIScreen.main.traitCollection.userInterfaceStyle
+            let dark = style == .dark
+            guard dark != lastValue else { return }
+            lastValue = dark
+            DispatchQueue.main.async { [weak self] in
+                self?.onChange?(dark)
+            }
+        }
+    }
+}
+
 struct ReaderView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
 
     /// 「跟随系统」在背景索引中的位置（readerBackgrounds 之外的第 6 项）
-    static let followSystemBackgroundIndex = readerBackgrounds.count
+    static let followSystemBackgroundIndex = ReaderBackgroundPolicy.followSystemIndex
 
     let book: Book
     let startChapter: Int
@@ -162,11 +417,12 @@ struct ReaderView: View {
     @State private var pendingAtEnd = false
     @State private var showSettings = false
     @State private var showCatalog = false
-    @State private var showBars = true
+    @State private var showBars = false
     @State private var now = Date()
     @State private var pillExpanded = false
     @State private var batteryLevel: Float = UIDevice.current.batteryLevel
     @State private var isCharging = false
+    @State private var systemIsDark = SystemAppearance.isDark
 
     // 阅读时长统计：readingStart 非 nil 表示计时中
     @State private var readingStart: Date?
@@ -202,12 +458,14 @@ struct ReaderView: View {
     /// 分页版本号：每次重新分页后递增，用于触发翻页视图重建（设置即时生效）
     @State private var paginationVersion = 0
 
-    /// 翻页视图的渲染签名：分页版本 + 全部阅读设置（背景/字体/字号/行距/字重/边距/模式）+ 强调色 + 系统明暗
+    /// 翻页视图的渲染签名：分页版本 + 全部阅读设置 + 强调色 + 已解析的阅读背景。
     /// 任一变化都会让 PageCurlReaderView 重建当前页，实现设置即时响应（无需翻页）
     private var renderToken: String {
-        let accent = UserDefaults.standard.string(forKey: "accentTheme") ?? AccentTheme.purple.rawValue
+        let accent = AccentTheme.resolve(
+            UserDefaults.standard.string(forKey: AccentTheme.storageKey)
+        ).rawValue
         let p = store.readerPreferences
-        return "\(paginationVersion)|\(p.backgroundIndex)|\(p.fontFamily.rawValue)|\(Int(p.fontSize))|\(Int(p.lineSpacing))|\(p.bold)|\(Int(p.marginLeft))|\(Int(p.marginRight))|\(Int(p.marginTop))|\(Int(p.marginBottom))|\(p.mode.rawValue)|\(accent)|\(colorScheme == .dark ? "dark" : "light")"
+        return "\(paginationVersion)|\(resolvedBackgroundIndex)|\(p.fontFamily.rawValue)|\(Int(p.fontSize))|\(Int(p.lineSpacing))|\(p.bold)|\(Int(p.marginLeft))|\(Int(p.marginRight))|\(Int(p.marginTop))|\(Int(p.marginBottom))|\(p.mode.rawValue)|\(accent)"
     }
 
     private func layoutKey(_ size: CGSize) -> String {
@@ -238,7 +496,8 @@ struct ReaderView: View {
                 fontSize: fontSize,
                 lineSpacing: lineSpacing,
                 family: family,
-                bold: bold
+                bold: bold,
+                shouldCancel: { Task.isCancelled }
             )
             guard !Task.isCancelled else { return }
             await MainActor.run {
@@ -272,16 +531,17 @@ struct ReaderView: View {
         paginationVersion += 1
     }
 
-    private var bg: ReaderBackground {
-        let index = store.readerPreferences.backgroundIndex
-        if index == Self.followSystemBackgroundIndex {
-            // 跟随系统：浅色用米白，深色用 OLED 纯黑夜间
-            return colorScheme == .dark
-                ? readerBackgrounds.first { $0.name == "夜间" }!
-                : readerBackgrounds.first { !$0.isDark }!
-        }
-        return readerBackgrounds[min(max(index, 0), readerBackgrounds.count - 1)]
+    private var resolvedBackgroundIndex: Int {
+        ReaderBackgroundPolicy.resolvedIndex(
+            selection: store.readerPreferences.backgroundIndex,
+            systemIsDark: systemIsDark
+        )
     }
+
+    private var bg: ReaderBackground { readerBackgrounds[resolvedBackgroundIndex] }
+
+    /// 阅读器自身控制状态栏、设置 Sheet 等系统 UI 的明暗，不继承设置页的 App 外观。
+    private var readerColorScheme: ColorScheme { bg.isDark ? .dark : .light }
     /// UI 控件（底栏、返回键、药丸）单色：深色背景用白，浅色背景用黑
     private var uiColor: Color { bg.isDark ? .white : .black }
     private var prefs: ReaderPreferences { store.readerPreferences }
@@ -327,6 +587,16 @@ struct ReaderView: View {
         ZStack {
             bg.background.ignoresSafeArea()
             contentArea
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .ignoresSafeArea(.container, edges: .vertical)
+            SystemAppearanceProbe { dark in
+                if systemIsDark != dark {
+                    systemIsDark = dark
+                }
+            }
+            .frame(width: 0, height: 0)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
             // 药丸展开时，点击内容区任意空白处收起药丸
             if pillExpanded {
                 Color.black.opacity(0.001)
@@ -407,6 +677,7 @@ struct ReaderView: View {
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
+                systemIsDark = SystemAppearance.isDark
                 if readingStart == nil { readingStart = Date() }
             } else {
                 flushReadingTime()
@@ -414,6 +685,8 @@ struct ReaderView: View {
         }
         .onReceive(minuteTimer) { date in
             now = date
+            // App 即使强制浅色/深色，也定期读取 UIScreen 的真实系统外观（含日落自动切换）。
+            systemIsDark = SystemAppearance.isDark
             tickReadingClock()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)) { _ in
@@ -428,13 +701,19 @@ struct ReaderView: View {
             await loadContent()
         }
         .sheet(isPresented: $showSettings) {
-            ReaderSettingsSheet(preferences: $store.readerPreferences)
+            ReaderSettingsSheet(
+                preferences: $store.readerPreferences,
+                systemIsDark: systemIsDark
+            )
         }
         .sheet(isPresented: $showCatalog) {
             CatalogView(book: liveBook, currentChapter: chapter, chapterProgress: chapterReadProgress) { index in
                 goToChapter(index)
             }
         }
+        // 沉浸阅读：顶栏/底栏隐藏时同步隐藏系统状态栏
+        .statusBarHidden(!showBars)
+        .preferredColorScheme(readerColorScheme)
     }
 
     private func loadContent() async {
@@ -601,10 +880,15 @@ struct ReaderView: View {
             captionColor: bg.foreground.opacity(0.6),
             prefs: prefs,
             restoreFraction: store.chapterOffset(bookID: book.id, chapter: chapter),
+            canAdvanceChapter: liveBook.totalChapters == 0 || chapter < liveBook.totalChapters - 1,
             onToggleBars: {
                 withAnimation(.easeInOut(duration: 0.2)) { showBars.toggle() }
             },
             onFractionChange: { scrollFraction = $0 },
+            onNextChapter: {
+                guard liveBook.totalChapters == 0 || chapter < liveBook.totalChapters - 1 else { return }
+                goToChapter(chapter + 1, atEnd: false)
+            },
             onPersist: { chapterNumber, fraction in
                 store.recordChapterOffset(bookID: book.id, chapter: chapterNumber, fraction: fraction)
             }
@@ -653,6 +937,9 @@ struct ReaderView: View {
                 computePages(size: geo.size)
             }
         }
+        // 分页区域恒为全屏：状态栏显示/隐藏不改变可用高度，避免 layoutKey 变化
+        // 触发重新分页导致翻页位置重置（退回章节第一页）
+        .ignoresSafeArea()
     }
 
     /// 第 index 页的内容（越界返回空）；整体铺满背景色，避免 UIHostingController 系统背景（暗色=黑纱）露出
@@ -669,6 +956,8 @@ struct ReaderView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(bg.background)
+        // 每个 UIHostingController 内部也忽略自己的 safe area，避免隐藏状态栏后正文上移、底部留带。
+        .ignoresSafeArea(.container, edges: .all)
     }
 
     @ViewBuilder

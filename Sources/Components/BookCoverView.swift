@@ -1,4 +1,19 @@
+import Foundation
 import SwiftUI
+
+/// 把多张封面完成后的 SwiftUI 状态更新分散到相邻帧，避免一批网络请求同时
+/// 返回时集中创建纹理、触发布局和合成。
+private actor CoverPresentationPacer {
+    static let shared = CoverPresentationPacer()
+    private var nextPresentation: UInt64 = 0
+
+    func reservationDelay() -> UInt64 {
+        let now = DispatchTime.now().uptimeNanoseconds
+        let scheduled = max(now, nextPresentation)
+        nextPresentation = scheduled + CoverLoadingPolicy.presentationIntervalNanoseconds
+        return scheduled - now
+    }
+}
 
 struct BookCoverView: View {
     let book: Book
@@ -7,6 +22,10 @@ struct BookCoverView: View {
     var showsUpdateDot = true
     var cornerRadius: CGFloat = 16
     var shadowRadius: CGFloat = 8
+    /// 长列表滚动时关闭封面淡入，避免每个新行出现时同时提交多组动画事务。
+    var animatesImageLoading = true
+    /// 长列表允许短暂延后缓存未命中的请求，一闪而过的 cell 会在启动网络前取消。
+    var imageLoadDelayNanoseconds: UInt64 = 0
 
     private var colors: [Color] {
         coverPalette[book.coverIndex % coverPalette.count]
@@ -18,7 +37,12 @@ struct BookCoverView: View {
 
     var body: some View {
         Group {
-            CoverImageView(urlString: book.coverURL, placeholder: placeholder)
+            CoverImageView(
+                urlString: book.coverURL,
+                placeholder: placeholder,
+                animatesLoading: animatesImageLoading,
+                startDelayNanoseconds: imageLoadDelayNanoseconds
+            )
         }
         .overlay(alignment: .bottomLeading) {
             if showsTitle {
@@ -49,7 +73,7 @@ struct BookCoverView: View {
         .overlay(alignment: .topTrailing) {
             if showsUpdateDot && book.hasUpdate {
                 Circle()
-                    .fill(.yellow)
+                    .fill(.red)
                     .frame(width: 8, height: 8)
                     .padding(9)
             }
@@ -62,97 +86,80 @@ struct BookCoverView: View {
     }
 }
 
-/// 封面图加载视图：走 CoverImageCache（磁盘 + 内存 + 重试），
-/// 失败或加载中显示占位渐变；视图重入（滑出再滑回）会重新触发加载。
-/// 内存命中时首帧直接渲染图片（同步读取），图片淡入避免闪动。
-/// 展示尺寸的下采样/位图解压在后台 Task 执行，结果按 url+尺寸缓存，
-/// 避免滚动时每个封面 cell 在主线程重复解码导致掉帧。
+/// 封面图加载视图：缓存层直接返回后台下采样并解码好的 UIImage。
+/// SwiftUI body 不再调用 UIImage(data:)，避免新页出现时集中占用主线程。
 struct CoverImageView: View {
     let urlString: String?
     let placeholder: LinearGradient
+    let animatesLoading: Bool
+    let startDelayNanoseconds: UInt64
 
-    @State private var imageData: Data?
-    @State private var failed = false
-
-    /// 后台下采样结果缓存：url + 展示尺寸 → 位图 Data。
-    /// 同一封面在书架/探索等多处显示、或滚动重入时复用，避免主线程重复解码。
-    /// 封面位图几十 KB/张，量级可控；内存警告时由系统回收。
-    /// 读写都在 @MainActor 的 decodeIfNeeded 内串行进行，无需加锁。
-    private static var decodeCache: [String: Data] = [:]
+    @State private var loadedImage: UIImage?
+    @State private var loadedURL: String?
 
     var body: some View {
-        GeometryReader { geo in
-            Group {
-                if let imageData, let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-            .animation(.easeOut(duration: 0.18), value: imageData)
-            .task(id: decodeTaskKey(size: geo.size)) {
-                await decodeIfNeeded(size: geo.size)
+        Group {
+            if let uiImage = displayImage {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                placeholder
             }
         }
+        .animation(animatesLoading ? .easeOut(duration: 0.14) : nil, value: displayImage != nil)
         .task(id: urlString) {
             await load()
         }
     }
 
-    /// 解码任务标识：url + 数据版本 + 展示尺寸。
-    /// 数据版本（count）保证 imageData 从 nil→data→已解码 的每次变化都重新求值；
-    /// 尺寸变化（旋转/换设备）时同样自动重新触发。
-    private func decodeTaskKey(size: CGSize) -> String {
-        "\(urlString ?? "")#\(imageData?.count ?? -1)#\(Int(size.width))x\(Int(size.height))"
-    }
-
-    /// 缓存标识：url + 展示尺寸（同尺寸复用，不随数据版本变化）
-    private func decodeCacheKey(size: CGSize) -> String {
-        "\(urlString ?? "")#\(Int(size.width))x\(Int(size.height))"
-    }
-
-    /// 位图已按展示尺寸解码则跳过；否则在后台下采样并写缓存。
-    private func decodeIfNeeded(size: CGSize) async {
-        let cacheKey = decodeCacheKey(size: size)
-        if Self.decodeCache[cacheKey] != nil { return }
-        guard let imageData, !imageData.isEmpty else { return }
-        let decoded = await Task.detached(priority: .utility) {
-            Self.decodedData(imageData, size: size)
-        }.value
-        guard let decoded else { return }
-        Self.decodeCache[cacheKey] = decoded
-        // 解码期间尺寸未再变化才更新显示，避免旧尺寸覆盖
-        if decodeCacheKey(size: size) == cacheKey {
-            self.imageData = decoded
+    /// 内存命中时不需要等待异步 task 的下一轮视图刷新，首帧即可取到现成 UIImage。
+    private var displayImage: UIImage? {
+        guard let urlString, !urlString.isEmpty else { return nil }
+        if loadedURL == urlString, let loadedImage {
+            return loadedImage
         }
-    }
-
-    /// 按展示尺寸下采样（ImageIO 缩略图解码，线程安全，可在后台执行）。
-    private static func decodedData(_ data: Data, size: CGSize) -> Data? {
-        guard !data.isEmpty, size.width > 0, size.height > 0 else { return data }
-        let scale = UIScreen.main.scale
-        let maxPixel = min(max(size.width, size.height) * scale, CoverImageCache.downsampledMaxPixel)
-        return CoverImageCache.downsample(data, maxPixel: maxPixel) ?? data
+        return CoverImageCache.shared.memoryImage(urlString)
     }
 
     private func load() async {
         guard let urlString, !urlString.isEmpty else {
-            failed = true
+            loadedImage = nil
+            loadedURL = nil
             return
         }
-        // 同步命中内存 → 首帧直接显示，不闪
-        if let hit = CoverImageCache.shared.memoryData(urlString) {
-            imageData = hit
+        if let hit = CoverImageCache.shared.memoryImage(urlString) {
+            loadedImage = hit
+            loadedURL = urlString
             return
         }
-        imageData = nil
-        failed = false
-        if let data = await CoverImageCache.shared.data(for: urlString) {
-            imageData = data
-        } else {
-            failed = true
+        loadedImage = nil
+        loadedURL = nil
+
+        if startDelayNanoseconds > 0 {
+            do {
+                try await Task.sleep(nanoseconds: startDelayNanoseconds)
+            } catch {
+                return
+            }
         }
+        guard !Task.isCancelled else { return }
+
+        let image = await CoverImageCache.shared.image(for: urlString)
+        guard !Task.isCancelled else { return }
+
+        if image != nil {
+            let delay = await CoverPresentationPacer.shared.reservationDelay()
+            if delay > 0 {
+                do {
+                    try await Task.sleep(nanoseconds: delay)
+                } catch {
+                    return
+                }
+            }
+        }
+        guard !Task.isCancelled else { return }
+        loadedImage = image
+        loadedURL = image == nil ? nil : urlString
     }
 }

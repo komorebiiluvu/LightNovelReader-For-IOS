@@ -46,9 +46,10 @@ object Gbk {
         val sb = StringBuilder(bytes.size * 3)
         for (b in bytes) {
             val v = b.toInt() and 0xFF
+            // 用小写十六进制：wenku8 的 search.php 只认小写 %xx（实测大写 %XX 返回乱码/空结果）
             sb.append('%')
-            sb.append("0123456789ABCDEF"[v shr 4])
-            sb.append("0123456789ABCDEF"[v and 0xF])
+            sb.append("0123456789abcdef"[v shr 4])
+            sb.append("0123456789abcdef"[v and 0xF])
         }
         return sb.toString()
     }
@@ -127,14 +128,25 @@ object Gbk {
     private fun buildEncoderMap(): Map<Char, Int> {
         val map = HashMap<Char, Int>()
         // GB2312 汉字区：16~87 区，每区 94 位
-        // 一级汉字 16~55 区（拼音序），二级汉字 56~87 区（部首序）
+        // 一级汉字 3755 个（16-55 区，拼音序），二级汉字 3008 个（56-87 区，部首序）
+        // 注意：55 区第 90~94 位是空位（无字），所以一级 3755 字结束后
+        // 二级汉字直接接在 56 区第 1 位，不能按 i/94 硬算区号。
         val unicode = gb2312Unicode()
         for (i in unicode.indices) {
             val ch = unicode[i]
             if (ch.code == 0) continue
-            // 第 i 个汉字 → 区号 = 16 + i / 94，位号 = i % 94 + 1
-            val zone = 16 + i / 94
-            val position = i % 94 + 1
+            val zone: Int
+            val position: Int
+            if (i < 3755) {
+                // 一级汉字：16 区起，每区 94 位，正好 3755 = 16..55 区满铺（55 区 89 位结束）
+                zone = 16 + i / 94
+                position = i % 94 + 1
+            } else {
+                // 二级汉字：56 区起（跳过 55 区的 5 个空位）
+                val j = i - 3755
+                zone = 56 + j / 94
+                position = j % 94 + 1
+            }
             val gbk = (0xA0 + zone) shl 8 or (0xA0 + position)
             map[ch] = gbk
         }

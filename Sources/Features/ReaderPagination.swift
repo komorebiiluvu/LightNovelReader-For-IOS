@@ -125,9 +125,10 @@ enum ReaderPagination {
         fontSize: CGFloat,
         lineSpacing: CGFloat,
         family: ReaderFontFamily = .system,
-        bold: Bool = false
+        bold: Bool = false,
+        shouldCancel: () -> Bool = { false }
     ) -> [[String]] {
-        guard !paragraphs.isEmpty, width > 0, height > 0 else { return [] }
+        guard !shouldCancel(), !paragraphs.isEmpty, width > 0, height > 0 else { return [] }
 
         // 缓存命中直接返回，避免重复测量
         let key = cacheKey(
@@ -140,8 +141,10 @@ enum ReaderPagination {
 
         let result = computePages(
             paragraphs: paragraphs, width: width, height: height,
-            fontSize: fontSize, lineSpacing: lineSpacing, family: family, bold: bold
+            fontSize: fontSize, lineSpacing: lineSpacing, family: family, bold: bold,
+            shouldCancel: shouldCancel
         )
+        guard !shouldCancel() else { return [] }
         pageCache.setObject(result as NSArray, forKey: key as NSString)
         return result
     }
@@ -153,7 +156,8 @@ enum ReaderPagination {
         fontSize: CGFloat,
         lineSpacing: CGFloat,
         family: ReaderFontFamily,
-        bold: Bool
+        bold: Bool,
+        shouldCancel: () -> Bool
     ) -> [[String]] {
         let font = resolveFont(family: family, bold: bold, size: fontSize)
         let style = NSMutableParagraphStyle()
@@ -176,6 +180,7 @@ enum ReaderPagination {
         // 预处理：过滤空段；单段超过一整页的按估算字符数切块
         var pieces: [String] = []
         for paragraph in paragraphs {
+            guard !shouldCancel() else { return [] }
             let plain = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !plain.isEmpty else { continue }
             if measuredHeight(plain) <= height {
@@ -184,6 +189,7 @@ enum ReaderPagination {
                 let chunk = charsPerLine * max(Int(height / lineHeight) - 1, 1)
                 var start = plain.startIndex
                 while start < plain.endIndex {
+                    guard !shouldCancel() else { return [] }
                     let end = plain.index(start, offsetBy: chunk, limitedBy: plain.endIndex) ?? plain.endIndex
                     pieces.append(String(plain[start..<end]))
                     start = end
@@ -198,6 +204,7 @@ enum ReaderPagination {
         var index = 0
 
         while index < pieces.count {
+            guard !shouldCancel() else { return [] }
             let piece = pieces[index]
             let pieceHeight = measuredHeight(piece)
             let extra = current.isEmpty ? 0 : paragraphSpacing
@@ -216,6 +223,7 @@ enum ReaderPagination {
                 let linesFit = Int(remaining / lineHeight)
                 var count = min(piece.count, charsPerLine * linesFit)
                 while count > 0 && measuredHeight(String(piece.prefix(count))) > remaining {
+                    guard !shouldCancel() else { return [] }
                     count -= max(charsPerLine / 2, 1)
                 }
                 if count > 0 {
@@ -229,6 +237,7 @@ enum ReaderPagination {
                         var start = tail.startIndex
                         var tailPieces: [String] = []
                         while start < tail.endIndex {
+                            guard !shouldCancel() else { return [] }
                             let end = tail.index(start, offsetBy: chunk, limitedBy: tail.endIndex) ?? tail.endIndex
                             tailPieces.append(String(tail[start..<end]))
                             start = end

@@ -37,10 +37,13 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="24" id="titleH"/>
+                                </constraints>
                             </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safeArea"/>
-                        <color key="backgroundColor" red="0.99" green="0.97" blue="0.93" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.9882352941176471" green="0.9686274509803922" blue="0.9333333333333333" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="launchIcon" firstAttribute="centerX" secondItem="rootView" secondAttribute="centerX" id="iconCX"/>
                             <constraint firstItem="launchIcon" firstAttribute="bottom" secondItem="titleStack" secondAttribute="top" constant="-12" id="iconBottom"/>

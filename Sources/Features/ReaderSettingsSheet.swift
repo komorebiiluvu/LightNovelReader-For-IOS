@@ -2,9 +2,9 @@ import SwiftUI
 
 struct ReaderSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
 
     @Binding var preferences: ReaderPreferences
+    let systemIsDark: Bool
 
     @State private var detent: PresentationDetent = .medium
     /// 滑杆/步进器防抖：拖动过程中只更新本地值，停顿后才写回 preferences 触发重排，
@@ -140,7 +140,7 @@ struct ReaderSettingsSheet: View {
 
     /// 「跟随系统」色块：配色随系统明暗实时变化（浅色=白底黑字，深色=黑底白字）
     private var followSystemSwatch: some View {
-        let dark = colorScheme == .dark
+        let dark = systemIsDark
         return Button {
             preferences.backgroundIndex = ReaderView.followSystemBackgroundIndex
         } label: {

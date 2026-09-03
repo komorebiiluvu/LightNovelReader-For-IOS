@@ -20,6 +20,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.HttpHeaders
 import platform.Foundation.NSLog
@@ -39,9 +40,11 @@ import kotlinx.serialization.json.Json
  */
 class Wenku8Client(
     engineFactory: HttpClientEngineFactory<*>? = null,
+    // 登录固定用 .net（jieqi cookie 只在 .net 发放）；正文/目录等页面请求
+    // 由 Wenku8DataSource 决定域名（.cc 更快），这里 hosts.first() 仅登录用
     private val hosts: List<String> = listOf(
-        "https://www.wenku8.cc",
         "https://www.wenku8.net",
+        "https://www.wenku8.cc",
         "https://www.wenku8.com"
     )
 ) {
@@ -87,13 +90,28 @@ class Wenku8Client(
     /** 登录后的 cookie 字符串（jieqi 系列），持久化到外部存储 */
     var savedCookie: String? = null
 
+    /** 未登录时的访问 cookie（jieqiVisitInfo / PHPSESSID），随请求保持会话 */
+    var visitingCookie: String? = null
+
     /** 是否已登录：cookie 里带 jieqiUserInfo 即视为登录 */
     val isLoggedIn: Boolean
         get() = savedCookie?.contains("jieqiUserInfo") == true
 
-    private suspend fun requestHeaders() {
-        // cookie 已在 defaultRequest 里统一设置，无需每次请求前再改
-        kotlinx.coroutines.yield()
+    /** 在请求构建器上注入当前会话 cookie（登录态或访问态） */
+    private fun HttpRequestBuilder.applyCookie() {
+        // 登录态 cookie 是登录后才写入的，不能依赖构造 HttpClient 时
+        // 一次性执行的 defaultRequest（那时 savedCookie 还是 null）。
+        // 这里在每次请求构建时实时读取当前 cookie，保证登录后搜索/探索
+        // 请求都带上会话，否则 wenku8 会把无登录态的请求弹回登录页。
+        currentCookie()?.let { cookie ->
+            header(HttpHeaders.Cookie, cookie)
+        }
+    }
+
+    /** 当前要随请求发送的 cookie（会话已登录时用 jieqi cookie，否则用访问 cookie） */
+    private fun currentCookie(): String? {
+        if (savedCookie != null) return savedCookie
+        return visitingCookie
     }
 
     /** 登录：POST 表单，成功后保存 jieqi cookie */
@@ -110,6 +128,7 @@ class Wenku8Client(
                     ).joinToString("&") { (k, v) -> "${k}=${urlEncodeForm(v)}" }
                 )
                 header(HttpHeaders.ContentType, "application/x-www-form-urlencoded")
+                // 登录请求不带旧 cookie：干净 POST，保证 wenku8 正常发放新的 jieqi 会话
             }
             val status = response.status.value
             val bytes = response.bodyAsBytes()
@@ -122,6 +141,7 @@ class Wenku8Client(
             NSLog("[Wenku8Login] parsed=${jieqiCookies.joinToString("; ").take(120)}")
             if (jieqiCookies.any { it.startsWith("jieqiUserInfo") }) {
                 savedCookie = jieqiCookies.sorted().joinToString("; ")
+                visitingCookie = savedCookie
                 NSLog("[Wenku8Login] SUCCESS")
                 return@runCatching "ok"
             }
@@ -162,8 +182,8 @@ class Wenku8Client(
     /** 取页面原始字节（GB18030）并解码成 UTF-8 字符串 */
     suspend fun getHtml(url: String): Result<String> {
         return runCatching {
-            requestHeaders()
-            val bytes = client.get(url).bodyAsBytes()
+            val response = client.get(url) { applyCookie() }
+            val bytes = response.bodyAsBytes()
             Gbk.decodeToString(bytes)
         }.fold(
             onSuccess = { Result.success(it) },
@@ -173,8 +193,7 @@ class Wenku8Client(
 
     suspend fun getBytes(url: String): Result<ByteArray> {
         return runCatching {
-            requestHeaders()
-            client.get(url).bodyAsBytes()
+            client.get(url) { applyCookie() }.bodyAsBytes()
         }.fold(
             onSuccess = { Result.success(it) },
             onFailure = { Result.failure(Exception(it.message ?: "网络错误")) }

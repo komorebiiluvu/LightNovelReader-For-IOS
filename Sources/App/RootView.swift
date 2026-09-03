@@ -4,27 +4,28 @@ import UIKit
 struct RootView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showSplash = true
-    @AppStorage("accentTheme") private var accentTheme = AccentTheme.blue.rawValue
+    @AppStorage(AccentTheme.storageKey) private var accentTheme = AccentTheme.defaultValue.rawValue
 
     var body: some View {
         ZStack {
-            // 用 UIKit UITabBarController 桥接，确保标签栏在 iPad 上也固定在底部
-            // （iPadOS 18+ 的 SwiftUI TabView 默认把标签栏放到顶部，与 iPhone/iOS17 行为不一致）
-            // .id(accentTheme)：主题色变化时重建整个 tab 树，使所有 Color.accentPurple 即时重求值
-            LegacyTabBarController(store: store, accentTheme: accentTheme)
-                .id(accentTheme)
-                .ignoresSafeArea()
-                .preferredColorScheme(store.theme.colorScheme)
-
-            // 开屏遮罩：数据加载完成 + 至少 1.5s 后淡出
             if showSplash {
+                // 启动期间只创建开屏页，避免底层 UIKit 容器建立 safe area 时带动遮罩重新布局。
                 SplashView()
                     .transition(.opacity)
                     .zIndex(1)
+            } else {
+                // 用 UIKit UITabBarController 桥接，确保标签栏在 iPad 上也固定在底部
+                // （iPadOS 18+ 的 SwiftUI TabView 默认把标签栏放到顶部，与 iPhone/iOS17 行为不一致）
+                // .id(accentTheme)：主题色变化时重建整个 tab 树，使所有 Color.accentPurple 即时重求值
+                LegacyTabBarController(store: store, accentTheme: accentTheme)
+                    .id(accentTheme)
+                    .ignoresSafeArea()
+                    .preferredColorScheme(store.theme.colorScheme)
+                    .transition(.opacity)
             }
         }
         // 全局强调色：所有系统控件（Button/Link/Toggle 等）默认用主题色，而非系统蓝
-        .tint(AccentTheme(rawValue: accentTheme)?.color ?? .accentPurple)
+        .tint(AccentTheme.resolve(accentTheme).color)
         .task {
             await handleAppLaunch()
         }
@@ -63,13 +64,13 @@ private struct LegacyTabBarController: UIViewControllerRepresentable {
         appearance.configureWithDefaultBackground()
         tab.tabBar.standardAppearance = appearance
         tab.tabBar.scrollEdgeAppearance = appearance
-        tab.tabBar.tintColor = UIColor(hex: (AccentTheme(rawValue: accentTheme) ?? .purple).lightHex)
+        tab.tabBar.tintColor = UIColor(hex: AccentTheme.resolve(accentTheme).lightHex)
         return tab
     }
 
     func updateUIViewController(_ uiViewController: UITabBarController, context: Context) {
         // 主题色变化时同步 tab bar tint
-        uiViewController.tabBar.tintColor = UIColor(hex: (AccentTheme(rawValue: accentTheme) ?? .purple).lightHex)
+        uiViewController.tabBar.tintColor = UIColor(hex: AccentTheme.resolve(accentTheme).lightHex)
     }
 
     private func host(_ view: some View, title: String, icon: String) -> UIViewController {

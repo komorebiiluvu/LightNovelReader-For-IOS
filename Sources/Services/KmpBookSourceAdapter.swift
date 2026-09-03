@@ -18,14 +18,10 @@ enum KmpBookSourceServiceFactory {
     }
 
     /// 返回应注入的 BookSourceService 实现：
-    /// - SharedKit 可用 → KMP 适配器
-    /// - 否则 → 现有纯 Swift 爬虫（兜底）
+    /// 混合服务：探索走 KMP（Ktor/Darwin 带 PHPSESSID 即可访问 articlelist/toplist/index），
+    /// 搜索走 Swift Wenku8Service（URLSession 指纹接近 Safari，登录能拿到 jieqi cookie）。
     static func makeDefaultService() -> BookSourceService {
-        #if canImport(SharedKit)
-        return KmpBookSourceAdapter()
-        #else
-        return Wenku8Service()
-        #endif
+        return HybridBookSourceService()
     }
 }
 
@@ -49,16 +45,13 @@ final class KmpBookSourceAdapter: BookSourceService {
         try await ensureLogin()
         // KMP 搜索返回书 ID 流；这里用第一个页面（页 1），单书直接取
         let ids: [String] = try await withCheckedThrowingContinuation { continuation in
-            var collected: [String] = []
-            var stream: Kotlinx_coroutines_coreFlow?
             // 通过 KMP 门面的搜索（Kotlin Flow 在 Swift 侧用 CompletionHandler 收流）
             api.searchBookIds(keyword: term, page: 1) { result, error in
                 if let error {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                collected = result ?? []
-                continuation.resume(returning: collected)
+                continuation.resume(returning: result ?? [])
             }
         }
         // 逐本拉详情（页 1 结果）
@@ -216,7 +209,7 @@ final class KmpBookSourceAdapter: BookSourceService {
                     continuation.resume(throwing: Self.asError(error))
                     return
                 }
-                if let errorMessage {
+                if errorMessage != nil {
                     continuation.resume(throwing: BookSourceError.loginRequired)
                     return
                 }
@@ -250,10 +243,16 @@ final class KmpBookSourceAdapter: BookSourceService {
         if let saved = Self.persistedCookie, api.savedCookie == nil {
             api.savedCookie = saved
         }
+        // wenku8 探索/详情接口只需 PHPSESSID（实测 Ktor 登录能拿到），不需要 jieqi cookie。
+        // 首次登录后即使拿不到 jieqiUserInfo 也不再重复登录，避免每次详情/探索前都发登录请求导致卡顿。
+        if didAttemptLogin { return }
+        didAttemptLogin = true
         if isLoggedIn { return }
         try await login(username: api.bundledUsername, password: api.bundledPassword)
         Self.persistedCookie = api.savedCookie
     }
+
+    private var didAttemptLogin = false
 
     // MARK: - 详情
 
